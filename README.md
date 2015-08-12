@@ -1,3 +1,5 @@
+# Biome Lib
+
 This library's purpose is to allow other mods to add growing things to the map in a straightforward, simple manner. It contains all the core functions needed by mods and modpacks such as More Trees, Tiny Trees, Plantlife, and others. 
 
 Spawning of plants is optionally sensitive to the amount of available light, elevation, nearness to other nodes, plant-to-plant density, water depth, and a whole host of controls. 
