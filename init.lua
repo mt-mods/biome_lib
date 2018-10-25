@@ -9,6 +9,7 @@
 -- Various settings - most of these probably won't need to be changed
 
 biome_lib = {}
+biome_lib.air = {name = "air"}
 
 plantslib = setmetatable({}, { __index=function(t,k) print("Use of deprecated function:", k) return biome_lib[k] end })
 
@@ -267,24 +268,24 @@ function biome_lib:populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 
 				if not (biome.avoid_nodes and biome.avoid_radius and minetest.find_node_near(p_top, biome.avoid_radius + math.random(-1.5,2), biome.avoid_nodes)) then
 					if biome.delete_above then
-						minetest.swap_node(p_top, {name ="air"})
-						minetest.swap_node({x=p_top.x, y=p_top.y+1, z=p_top.z}, {name ="air"})
+						minetest.swap_node(p_top, biome_lib.air)
+						minetest.swap_node({x=p_top.x, y=p_top.y+1, z=p_top.z}, biome_lib.air)
 					end
 
 					if biome.delete_above_surround then
-						minetest.swap_node({x=p_top.x-1, y=p_top.y, z=p_top.z}, {name ="air"})
-						minetest.swap_node({x=p_top.x+1, y=p_top.y, z=p_top.z}, {name ="air"})
-						minetest.swap_node({x=p_top.x,   y=p_top.y, z=p_top.z-1}, {name ="air"})
-						minetest.swap_node({x=p_top.x,   y=p_top.y, z=p_top.z+1}, {name ="air"})
+						minetest.swap_node({x=p_top.x-1, y=p_top.y, z=p_top.z}, biome_lib.air)
+						minetest.swap_node({x=p_top.x+1, y=p_top.y, z=p_top.z}, biome_lib.air)
+						minetest.swap_node({x=p_top.x,   y=p_top.y, z=p_top.z-1}, biome_lib.air)
+						minetest.swap_node({x=p_top.x,   y=p_top.y, z=p_top.z+1}, biome_lib.air)
 
-						minetest.swap_node({x=p_top.x-1, y=p_top.y+1, z=p_top.z}, {name ="air"})
-						minetest.swap_node({x=p_top.x+1, y=p_top.y+1, z=p_top.z}, {name ="air"})
-						minetest.swap_node({x=p_top.x,   y=p_top.y+1, z=p_top.z-1}, {name ="air"})
-						minetest.swap_node({x=p_top.x,   y=p_top.y+1, z=p_top.z+1}, {name ="air"})
+						minetest.swap_node({x=p_top.x-1, y=p_top.y+1, z=p_top.z}, biome_lib.air)
+						minetest.swap_node({x=p_top.x+1, y=p_top.y+1, z=p_top.z}, biome_lib.air)
+						minetest.swap_node({x=p_top.x,   y=p_top.y+1, z=p_top.z-1}, biome_lib.air)
+						minetest.swap_node({x=p_top.x,   y=p_top.y+1, z=p_top.z+1}, biome_lib.air)
 					end
 
 					if biome.spawn_replace_node then
-						minetest.swap_node(pos, {name ="air"})
+						minetest.swap_node(pos, biome_lib.air)
 					end
 
 					local objtype = type(nodes_or_function_or_model)
@@ -613,7 +614,7 @@ function biome_lib:grow_plants(opts)
 					end
 
 				elseif not options.grow_result and not options.grow_function then
-					minetest.swap_node(pos, {name="air"})
+					minetest.swap_node(pos, biome_lib.air)
 
 				else
 					biome_lib:replace_object(pos, options.grow_result, options.grow_function, options.facedir, options.seed_diff)
@@ -629,7 +630,7 @@ end
 function biome_lib:replace_object(pos, replacement, grow_function, walldir, seeddiff)
 	local growtype = type(grow_function)
 	if growtype == "table" then
-		minetest.swap_node(pos, {name="air"})
+		minetest.swap_node(pos, biome_lib.air)
 		biome_lib:grow_tree(pos, grow_function)
 		return
 	elseif growtype == "function" then
