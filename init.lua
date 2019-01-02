@@ -84,6 +84,22 @@ biome_lib.perlin_humidity = PerlinNoise(humidity_seeddiff, humidity_octaves, hum
 
 -- Local functions
 
+local function get_biome_data(pos, perlin_fertile)
+	local fertility = perlin_fertile:get2d({x=pos.x, y=pos.z})
+
+	if type(minetest.get_biome_data) == "function" then
+		local data = minetest.get_biome_data(pos)
+		if data then
+			return fertility, data.heat / 100, data.humidity / 100
+		end
+	end
+
+	local temperature = biome_lib.perlin_temperature:get2d({x=pos.x, y=pos.z})
+	local humidity = biome_lib.perlin_humidity:get2d({x=pos.x+150, y=pos.z+50})
+
+	return fertility, temperature, humidity
+end
+
 function biome_lib:is_node_loaded(node_pos)
 	local n = minetest.get_node_or_nil(node_pos)
 	if (not n) or (n.name == "ignore") then
@@ -203,18 +219,17 @@ end
 
 local function populate_single_surface(biome, pos, perlin_fertile_area, checkair)
 	local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
-	local noise1 = perlin_fertile_area:get2d({x=pos.x, y=pos.z})
-	local noise2 = biome_lib.perlin_temperature:get2d({x=pos.x, y=pos.z})
-	local noise3 = biome_lib.perlin_humidity:get2d({x=pos.x+150, y=pos.z+50})
 
 	if math.random(1, 100) <= biome.rarity then
 		return
 	end
 
+	local fertility, temperature, humidity = get_biome_data(pos, perlin_fertile_area)
+
 	local pos_biome_ok = pos.y >= biome.min_elevation and pos.y <= biome.max_elevation
-		and noise1 > biome.plantlife_limit
-		and noise2 <= biome.temp_min and noise2 >= biome.temp_max
-		and noise3 <= biome.humidity_min and noise3 >= biome.humidity_max
+		and fertility > biome.plantlife_limit
+		and temperature <= biome.temp_min and temperature >= biome.temp_max
+		and humidity <= biome.humidity_min and humidity >= biome.humidity_max
 	
 	if not pos_biome_ok then
 		return -- Y position mismatch, outside of biome
@@ -563,14 +578,13 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }	
 			local n_top = minetest.get_node(p_top)
 			local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, perlin_octaves, perlin_persistence, perlin_scale)
-			local noise1 = perlin_fertile_area:get2d({x=p_top.x, y=p_top.z})
-			local noise2 = biome_lib.perlin_temperature:get2d({x=p_top.x, y=p_top.z})
-			local noise3 = biome_lib.perlin_humidity:get2d({x=p_top.x+150, y=p_top.z+50})
+
+			local fertility, temperature, humidity = get_biome_data(pos, perlin_fertile_area)
 
 			local pos_biome_ok = pos.y >= biome.min_elevation and pos.y <= biome.max_elevation
-				and noise1 > biome.plantlife_limit
-				and noise2 <= biome.temp_min and noise2 >= biome.temp_max
-				and noise3 <= biome.humidity_min and noise3 >= biome.humidity_max
+				and fertility > biome.plantlife_limit
+				and temperature <= biome.temp_min and temperature >= biome.temp_max
+				and humidity <= biome.humidity_min and humidity >= biome.humidity_max
 				and biome_lib:is_node_loaded(p_top)
 
 			if not pos_biome_ok then
@@ -674,15 +688,13 @@ function biome_lib:replace_object(pos, replacement, grow_function, walldir, seed
 		return
 	elseif growtype == "function" then
 		local perlin_fertile_area = minetest.get_perlin(seeddiff, perlin_octaves, perlin_persistence, perlin_scale)
-		local noise1 = perlin_fertile_area:get2d({x=pos.x, y=pos.z})
-		local noise2 = biome_lib.perlin_temperature:get2d({x=pos.x, y=pos.z})
-		grow_function(pos,noise1,noise2,walldir)
+		local fertility, temperature, _ = get_biome_data(pos, perlin_fertile_area)
+		grow_function(pos, fertility, temperature, walldir)
 		return
 	elseif growtype == "string" then
 		local perlin_fertile_area = minetest.get_perlin(seeddiff, perlin_octaves, perlin_persistence, perlin_scale)
-		local noise1 = perlin_fertile_area:get2d({x=pos.x, y=pos.z})
-		local noise2 = biome_lib.perlin_temperature:get2d({x=pos.x, y=pos.z})
-		assert(loadstring(grow_function.."(...)"))(pos,noise1,noise2,walldir)
+		local fertility, temperature, _ = get_biome_data(pos, perlin_fertile_area)
+		assert(loadstring(grow_function.."(...)"))(pos, fertility, temperature, walldir)
 		return
 	elseif growtype == "nil" then
 		minetest.swap_node(pos, { name = replacement, param2 = walldir})
