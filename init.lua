@@ -566,59 +566,97 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 			local noise1 = perlin_fertile_area:get2d({x=p_top.x, y=p_top.z})
 			local noise2 = biome_lib.perlin_temperature:get2d({x=p_top.x, y=p_top.z})
 			local noise3 = biome_lib.perlin_humidity:get2d({x=p_top.x+150, y=p_top.z+50})
-			if noise1 > biome.plantlife_limit 
-			  and noise2 <= biome.temp_min
-			  and noise2 >= biome.temp_max
-			  and noise3 <= biome.humidity_min
-			  and noise3 >= biome.humidity_max
-			  and biome_lib:is_node_loaded(p_top) then
-				local n_light = minetest.get_node_light(p_top, nil)
-				if not (biome.avoid_nodes and biome.avoid_radius and minetest.find_node_near(p_top, biome.avoid_radius + math.random(-1.5,2), biome.avoid_nodes))
-				  and n_light >= biome.light_min
-				  and n_light <= biome.light_max
-				  and (not(biome.neighbors and biome.ncount) or #(minetest.find_nodes_in_area({x=pos.x-1, y=pos.y, z=pos.z-1}, {x=pos.x+1, y=pos.y, z=pos.z+1}, biome.neighbors)) > biome.ncount )
-				  and (not(biome.near_nodes and biome.near_nodes_count and biome.near_nodes_size) or #(minetest.find_nodes_in_area({x=pos.x-biome.near_nodes_size, y=pos.y-biome.near_nodes_vertical, z=pos.z-biome.near_nodes_size}, {x=pos.x+biome.near_nodes_size, y=pos.y+biome.near_nodes_vertical, z=pos.z+biome.near_nodes_size}, biome.near_nodes)) >= biome.near_nodes_count)
-				  and (not(biome.air_count and biome.air_size) or #(minetest.find_nodes_in_area({x=p_top.x-biome.air_size, y=p_top.y, z=p_top.z-biome.air_size}, {x=p_top.x+biome.air_size, y=p_top.y, z=p_top.z+biome.air_size}, "air")) >= biome.air_count)
-				  and pos.y >= biome.min_elevation
-				  and pos.y <= biome.max_elevation
-				  then
-					local walldir = biome_lib:find_adjacent_wall(p_top, biome.verticals_list, biome.choose_random_wall)
-					if biome.alt_wallnode and walldir then
-						if n_top.name == "air" then
-							minetest.swap_node(p_top, { name = biome.alt_wallnode, param2 = walldir })
-						end
-					else
-						local currentsurface = minetest.get_node(pos).name
-						if currentsurface ~= "default:water_source"
-						  or (currentsurface == "default:water_source" and #(minetest.find_nodes_in_area({x=pos.x, y=pos.y-biome.depth_max-1, z=pos.z}, {x=pos.x, y=pos.y, z=pos.z}, {"default:dirt", "default:dirt_with_grass", "default:sand"})) > 0 )
-						  then
-							local rnd = math.random(1, biome.spawn_plants_count)
-							local plant_to_spawn = biome.spawn_plants[rnd]
-							local fdir = biome.facedir
-							if biome.random_facedir then
-								fdir = math.random(biome.random_facedir[1],biome.random_facedir[2])
-							end
-							if type(biome.spawn_plants) == "string" then
-								assert(loadstring(biome.spawn_plants.."(...)"))(pos)
-							elseif not biome.spawn_on_side and not biome.spawn_on_bottom and not biome.spawn_replace_node then
-								if n_top.name == "air" then
-									minetest.swap_node(p_top, { name = plant_to_spawn, param2 = fdir })
-								end
-							elseif biome.spawn_replace_node then
-								minetest.swap_node(pos, { name = plant_to_spawn, param2 = fdir })
 
-							elseif biome.spawn_on_side then
-								local onside = biome_lib:find_open_side(pos)
-								if onside then 
-									minetest.swap_node(onside.newpos, { name = plant_to_spawn, param2 = onside.facedir })
-								end
-							elseif biome.spawn_on_bottom then
-								if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == "air" then
-									minetest.swap_node({x=pos.x, y=pos.y-1, z=pos.z}, { name = plant_to_spawn, param2 = fdir} )
-								end
-							end
-						end
-					end
+			local pos_biome_ok = pos.y >= biome.min_elevation and pos.y <= biome.max_elevation
+				and noise1 > biome.plantlife_limit
+				and noise2 <= biome.temp_min and noise2 >= biome.temp_max
+				and noise3 <= biome.humidity_min and noise3 >= biome.humidity_max
+				and biome_lib:is_node_loaded(p_top)
+
+			if not pos_biome_ok then
+				return -- Outside of biome
+			end
+
+			local n_light = minetest.get_node_light(p_top, nil)
+			if n_light < biome.light_min or n_light > biome.light_max then
+				return -- Too dark or too bright
+			end
+
+			if biome.avoid_nodes and biome.avoid_radius and minetest.find_node_near(
+					p_top, biome.avoid_radius + math.random(-1.5,2), biome.avoid_nodes) then
+				return -- Nodes to avoid are nearby
+			end
+
+			if biome.neighbors and biome.ncount and
+					#minetest.find_nodes_in_area(
+						{x=pos.x-1, y=pos.y, z=pos.z-1},
+						{x=pos.x+1, y=pos.y, z=pos.z+1},
+						biome.neighbors
+					) <= biome.ncount then
+				return -- Near neighbour nodes are not present
+			end
+
+			local NEAR_DST = biome.near_nodes_size
+			if biome.near_nodes and biome.near_nodes_count and biome.near_nodes_size and
+					#minetest.find_nodes_in_area(
+						{x=pos.x-NEAR_DST, y=pos.y-biome.near_nodes_vertical, z=pos.z-NEAR_DST},
+						{x=pos.x+NEAR_DST, y=pos.y+biome.near_nodes_vertical, z=pos.z+NEAR_DST},
+						biome.near_nodes
+					) < biome.near_nodes_count then
+				return -- Far neighbour nodes are not present
+			end
+
+			if (biome.air_count and biome.air_size) and
+					#minetest.find_nodes_in_area(
+						{x=p_top.x-biome.air_size, y=p_top.y, z=p_top.z-biome.air_size},
+						{x=p_top.x+biome.air_size, y=p_top.y, z=p_top.z+biome.air_size},
+						"air"
+					) < biome.air_count then
+				return -- Not enough air
+			end
+
+			local walldir = biome_lib:find_adjacent_wall(p_top, biome.verticals_list, biome.choose_random_wall)
+			if biome.alt_wallnode and walldir then
+				if n_top.name == "air" then
+					minetest.swap_node(p_top, { name = biome.alt_wallnode, param2 = walldir })
+				end
+				return
+			end
+
+			local currentsurface = minetest.get_node(pos).name
+
+			if currentsurface == "default:water_source" and
+					#minetest.find_nodes_in_area(
+						{x=pos.x, y=pos.y-biome.depth_max-1, z=pos.z},
+						vector.copy(pos),
+						{"default:dirt", "default:dirt_with_grass", "default:sand"}
+					) == 0 then
+				return -- On water but no ground nearby
+			end
+
+			local rnd = math.random(1, biome.spawn_plants_count)
+			local plant_to_spawn = biome.spawn_plants[rnd]
+			local fdir = biome.facedir
+			if biome.random_facedir then
+				fdir = math.random(biome.random_facedir[1],biome.random_facedir[2])
+			end
+			if type(biome.spawn_plants) == "string" then
+				assert(loadstring(biome.spawn_plants.."(...)"))(pos)
+			elseif not biome.spawn_on_side and not biome.spawn_on_bottom and not biome.spawn_replace_node then
+				if n_top.name == "air" then
+					minetest.swap_node(p_top, { name = plant_to_spawn, param2 = fdir })
+				end
+			elseif biome.spawn_replace_node then
+				minetest.swap_node(pos, { name = plant_to_spawn, param2 = fdir })
+
+			elseif biome.spawn_on_side then
+				local onside = biome_lib:find_open_side(pos)
+				if onside then
+					minetest.swap_node(onside.newpos, { name = plant_to_spawn, param2 = onside.facedir })
+				end
+			elseif biome.spawn_on_bottom then
+				if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == "air" then
+					minetest.swap_node({x=pos.x, y=pos.y-1, z=pos.z}, { name = plant_to_spawn, param2 = fdir} )
 				end
 			end
 		end
