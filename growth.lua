@@ -1,3 +1,5 @@
+local time_scale = ...
+
 -- The growing ABM
 
 function biome_lib:grow_plants(opts)
