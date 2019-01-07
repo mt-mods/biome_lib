@@ -642,7 +642,7 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 			if currentsurface == "default:water_source" and
 					#minetest.find_nodes_in_area(
 						{x=pos.x, y=pos.y-biome.depth_max-1, z=pos.z},
-						vector.copy(pos),
+						vector.new(pos),
 						{"default:dirt", "default:dirt_with_grass", "default:sand"}
 					) == 0 then
 				return -- On water but no ground nearby
