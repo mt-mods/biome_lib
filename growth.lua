@@ -44,12 +44,7 @@ function biome_lib:grow_plants(opts)
 			end
 			if (n_top.name == "air" or n_top.name == "default:snow")
 			  and (not options.need_wall or (options.need_wall and walldir)) then
-				-- corner case for changing short junglegrass
-				-- to dry shrub in desert
-				if n_bot.name == options.dry_early_node and options.grow_plant == "junglegrass:short" then
-					minetest.swap_node(pos, { name = "default:dry_shrub" })
-
-				elseif options.grow_vertically and walldir then
+				if options.grow_vertically and walldir then
 					if biome_lib:search_downward(pos, options.height_limit, options.ground_nodes) then
 						minetest.swap_node(p_top, { name = options.grow_plant, param2 = walldir})
 					end
