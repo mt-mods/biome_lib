@@ -2,6 +2,19 @@ local time_scale = ...
 
 -- The growing ABM
 
+function biome_lib.check_surface(name, nodes)
+	if not nodes then return true end
+	if type(nodes) == "string" then return nodes == name end
+	if nodes.set and nodes[name] then
+		return true
+	else
+		for _, n in ipairs(nodes) do
+			if name == n then return true end
+		end
+	end
+	return false
+end
+
 function biome_lib:grow_plants(opts)
 
 	local options = opts
@@ -49,11 +62,13 @@ function biome_lib:grow_plants(opts)
 						minetest.swap_node(p_top, { name = options.grow_plant, param2 = walldir})
 					end
 
-				elseif not options.grow_result and not options.grow_function then
-					minetest.swap_node(pos, biome_lib.air)
+				elseif biome_lib.check_surface(n_bot.name, options.grow_nodes) then
+					if not options.grow_result and not options.grow_function then
+						minetest.swap_node(pos, biome_lib.air)
 
-				else
-					biome_lib:replace_object(pos, options.grow_result, options.grow_function, options.facedir, options.seed_diff)
+					else
+						biome_lib:replace_object(pos, options.grow_result, options.grow_function, options.facedir, options.seed_diff)
+					end
 				end
 			end
 		end
