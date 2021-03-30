@@ -32,6 +32,41 @@ biome_lib.total_no_aircheck_calls = 0
 
 biome_lib.queue_run_ratio = tonumber(minetest.settings:get("biome_lib_queue_run_ratio")) or 100
 
+local function tableize(s)
+	return string.split(string.trim(string.gsub(s, " ", "")))
+end
+
+local c1 minetest.settings:get("biome_lib_default_grow_through_nodes")
+biome_lib.default_grow_through_nodes = {["air"] = true}
+if c1 then
+	for _, i in ipairs(tableize(c1)) do
+		biome_lib.default_grow_through_nodes[i] = true
+	end
+else
+	biome_lib.default_grow_through_nodes["default:snow"] = true
+end
+
+local c2 minetest.settings:get("biome_lib_default_water_nodes")
+biome_lib.default_water_nodes = {}
+if c2 then
+	for _, i in ipairs(tableize(c2)) do
+		biome_lib.default_water_nodes[i] = true
+	end
+else
+	biome_lib.default_water_nodes["default:water_source"] = true
+	biome_lib.default_water_nodes["default:water_flowing"] = true
+	biome_lib.default_water_nodes["default:river_water_source"] = true
+	biome_lib.default_water_nodes["default:river_water_flowing"] = true
+end
+
+local c3 = minetest.settings:get("biome_lib_default_wet_surfaces")
+local c4 = minetest.settings:get("biome_lib_default_ground_nodes")
+local c5 = minetest.settings:get("biome_lib_default_grow_nodes")
+
+biome_lib.default_wet_surfaces = c3 and tableize(c3) or {"default:dirt", "default:dirt_with_grass", "default:sand"}
+biome_lib.default_ground_nodes = c4 and tableize(c4) or {"default:dirt_with_grass"}
+biome_lib.default_grow_nodes =   c5 and tableize(c5) or {"default:dirt_with_grass"}
+
 -- Boilerplate to support localized strings if intllib mod is installed.
 local S
 if minetest.global_exists("intllib") then
@@ -617,11 +652,11 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 
 			local currentsurface = minetest.get_node(pos).name
 
-			if currentsurface == "default:water_source" and
+			if biome_lib.default_water_nodes[currentsurface] and
 					#minetest.find_nodes_in_area(
 						{x=pos.x, y=pos.y-biome.depth_max-1, z=pos.z},
 						vector.new(pos),
-						{"default:dirt", "default:dirt_with_grass", "default:sand"}
+						biome_lib.default_wet_surfaces
 					) == 0 then
 				return -- On water but no ground nearby
 			end
