@@ -329,6 +329,7 @@ local function populate_single_surface(biome, pos, perlin_fertile_area, checkair
 end
 
 function biome_lib:populate_surfaces(biome, nodes_or_function_or_model, snodes, checkair)
+	local items_added = 0
 
 	biome_lib:set_defaults(biome)
 
@@ -349,7 +350,7 @@ function biome_lib:populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 	local num_in_biome_nodes = #in_biome_nodes
 
 	if num_in_biome_nodes == 0 then
-		return
+		return 0
 	end
 
 	for i = 1, math.min(biome.max_count, num_in_biome_nodes) do
@@ -421,7 +422,9 @@ function biome_lib:populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 				tries = tries + 1
 			end
 		end
+		if spawned then items_added = items_added + 1 end
 	end
+	return items_added
 end
 
 -- Primary mapgen spawner, for mods that can work with air checking enabled on
@@ -444,14 +447,21 @@ function biome_lib:generate_block_with_air_checking()
 		biome_lib.surface_nodes_aircheck.blockhash =
 			minetest.find_nodes_in_area_under_air(minp, maxp, biome_lib.surfaceslist_aircheck)
 		biome_lib.actioncount_aircheck.blockhash = 1
+		if #biome_lib.surface_nodes_aircheck.blockhash > 0 then
+			biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp).." added, with "..#biome_lib.surface_nodes_aircheck.blockhash.." surface nodes detected.")
+		end
 
 	else
 		if biome_lib.actionslist_aircheck[biome_lib.actioncount_aircheck.blockhash] then
 			-- [1] is biome, [2] is node/function/model
-			biome_lib:populate_surfaces(
+			local added = biome_lib:populate_surfaces(
 				biome_lib.actionslist_aircheck[biome_lib.actioncount_aircheck.blockhash][1],
 				biome_lib.actionslist_aircheck[biome_lib.actioncount_aircheck.blockhash][2],
 				biome_lib.surface_nodes_aircheck.blockhash, true)
+			if added > 0 then
+				biome_lib:dbg("Ran biome_lib:populate_surfaces for block at "..minetest.pos_to_string(minp)..
+					".  Entry #"..biome_lib.actioncount_aircheck.blockhash.." added "..added.." items.")
+			end
 			biome_lib.actioncount_aircheck.blockhash = biome_lib.actioncount_aircheck.blockhash + 1
 		else
 			table.remove(biome_lib.blocklist_aircheck, 1)
