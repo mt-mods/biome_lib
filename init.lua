@@ -49,8 +49,8 @@ local DEBUG = minetest.settings:get_bool("biome_lib_debug", false)
 
 function biome_lib:dbg(msg)
 	if DEBUG then
-		print("[Plantlife] "..msg)
-		minetest.log("verbose", "[Plantlife] "..msg)
+		print("[Biome Lib] "..msg)
+		minetest.log("verbose", "[Biome Lib] "..msg)
 	end
 end
 
@@ -709,7 +709,7 @@ if DEBUG then
 	function biome_lib.show_pending_block_counts()
 		if biome_lib.last_count_air ~= #biome_lib.blocklist_aircheck
 			or biome_lib.last_count_no_air ~= #biome_lib.blocklist_no_aircheck then
-			biome_lib:dbg(string.format("[Biome Lib] pending block counts,  air: %-7i no-air: %i",
+			biome_lib:dbg(string.format("Pending block counts,  air: %-7i no-air: %i",
 				#biome_lib.blocklist_aircheck, #biome_lib.blocklist_no_aircheck))
 
 			biome_lib.last_count_air = #biome_lib.blocklist_aircheck
@@ -721,8 +721,8 @@ if DEBUG then
 	biome_lib.show_pending_block_counts()
 
 	minetest.after(0, function()
-		print("[Biome Lib] Registered a total of "..(#biome_lib.surfaceslist_aircheck)+(#biome_lib.surfaceslist_no_aircheck).." surface types to be evaluated, spread")
-		print("[Biome Lib] across "..#biome_lib.actionslist_aircheck.." actions with air-checking and "..#biome_lib.actionslist_no_aircheck.." actions without.")
+		print("Registered a total of "..(#biome_lib.surfaceslist_aircheck)+(#biome_lib.surfaceslist_no_aircheck).." surface types to be evaluated, spread")
+		print("across "..#biome_lib.actionslist_aircheck.." actions with air-checking and "..#biome_lib.actionslist_no_aircheck.." actions without.")
 	end)
 
 end
