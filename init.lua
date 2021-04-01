@@ -682,11 +682,8 @@ function biome_lib:replace_object(pos, replacement, grow_function, walldir, seed
 	end
 end
 
-
 dofile(biome_lib.modpath .. "/search_functions.lua")
 assert(loadfile(biome_lib.modpath .. "/growth.lua"))(time_scale)
-
-
 
 -- Check for infinite stacks
 
@@ -711,4 +708,3 @@ minetest.after(0, function()
 	print("[Biome Lib] Registered a total of "..(#biome_lib.surfaceslist_aircheck)+(#biome_lib.surfaceslist_no_aircheck).." surface types to be evaluated, spread")
 	print("[Biome Lib] across "..#biome_lib.actionslist_aircheck.." actions with air-checking and "..#biome_lib.actionslist_no_aircheck.." actions without.")
 end)
-
