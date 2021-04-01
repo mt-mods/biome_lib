@@ -45,7 +45,7 @@ else
 end
 biome_lib.intllib = S
 
-local DEBUG = false --... except if you want to spam the console with debugging info :-)
+local DEBUG = minetest.settings:get_bool("biome_lib_debug", false)
 
 function biome_lib:dbg(msg)
 	if DEBUG then
