@@ -9,8 +9,6 @@
 biome_lib = {}
 biome_lib.air = {name = "air"}
 
-plantslib = setmetatable({}, { __index=function(t,k) print("Use of deprecated function:", k) return biome_lib[k] end })
-
 biome_lib.blocklist_aircheck = {}
 biome_lib.blocklist_no_aircheck = {}
 
