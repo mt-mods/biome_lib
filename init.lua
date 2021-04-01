@@ -702,6 +702,25 @@ function biome_lib:get_nodedef_field(nodename, fieldname)
 	return minetest.registered_nodes[nodename][fieldname]
 end
 
+if DEBUG then
+	biome_lib.last_count_air = 0
+	biome_lib.last_count_no_air = 0
+
+	function biome_lib.show_pending_block_counts()
+		if biome_lib.last_count_air ~= #biome_lib.blocklist_aircheck
+			or biome_lib.last_count_no_air ~= #biome_lib.blocklist_no_aircheck then
+			biome_lib:dbg(string.format("[Biome Lib] pending block counts,  air: %-7i no-air: %i",
+				#biome_lib.blocklist_aircheck, #biome_lib.blocklist_no_aircheck))
+
+			biome_lib.last_count_air = #biome_lib.blocklist_aircheck
+			biome_lib.last_count_no_air = #biome_lib.blocklist_no_aircheck
+		end
+		minetest.after(1, biome_lib.show_pending_block_counts)
+	end
+
+	biome_lib.show_pending_block_counts()
+end
+
 print("[Biome Lib] Loaded")
 
 minetest.after(0, function()
