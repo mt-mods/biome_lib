@@ -427,10 +427,22 @@ function biome_lib:populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 	return items_added
 end
 
+-- make sure the target block and all 6 neighbors are actually loaded.
+
+local function confirm_block_surroundings(pos)
+	return minetest.get_node_or_nil(pos)
+	  and minetest.get_node_or_nil({ x=pos.x-16, y=pos.y,   z=pos.z   })
+	  and minetest.get_node_or_nil({ x=pos.x+16, y=pos.y,   z=pos.z   })
+	  and minetest.get_node_or_nil({ x=pos.x,   y=pos.y-16, z=pos.z   })
+	  and minetest.get_node_or_nil({ x=pos.x,   y=pos.y+16, z=pos.z   })
+	  and minetest.get_node_or_nil({ x=pos.x,   y=pos.y,   z=pos.z-16 })
+	  and minetest.get_node_or_nil({ x=pos.x,   y=pos.y,   z=pos.z+16 })
+end
+
 -- Primary mapgen spawner, for mods that can work with air checking enabled on
 -- a surface during the initial map read stage.
 
-function biome_lib:generate_block_with_air_checking()
+function biome_lib:generate_block_with_air_checking(shutdown)
 	if not biome_lib.blocklist_aircheck[1] then
 		return
 	end
@@ -450,7 +462,10 @@ function biome_lib:generate_block_with_air_checking()
 		if #biome_lib.surface_nodes_aircheck.blockhash > 0 then
 			biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp).." added, with "..#biome_lib.surface_nodes_aircheck.blockhash.." surface nodes detected.")
 		end
-
+	elseif not shutdown and not confirm_block_surroundings(minp) and #biome_lib.blocklist_aircheck > 1 then
+		biome_lib.blocklist_aircheck[#biome_lib.blocklist_aircheck+1] = biome_lib.blocklist_aircheck[1]
+		table.remove(biome_lib.blocklist_aircheck, 1)
+		biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp).." had an unloaded neighbor, moved it to the end of the queue.")
 	else
 		if biome_lib.actionslist_aircheck[biome_lib.actioncount_aircheck.blockhash] then
 			-- [1] is biome, [2] is node/function/model
@@ -474,7 +489,7 @@ end
 -- Secondary mapgen spawner, for mods that require disabling of
 -- checking for air during the initial map read stage.
 
-function biome_lib:generate_block_no_aircheck()
+function biome_lib:generate_block_no_aircheck(shutdown)
 	if not biome_lib.blocklist_no_aircheck[1] then
 		return
 	end
@@ -488,7 +503,9 @@ function biome_lib:generate_block_no_aircheck()
 		biome_lib.surface_nodes_no_aircheck.blockhash =
 			minetest.find_nodes_in_area(minp, maxp, biome_lib.surfaceslist_no_aircheck)
 		biome_lib.actioncount_no_aircheck.blockhash = 1
-
+	elseif not shutdown and not confirm_block_surroundings(minp) and #biome_lib.blocklist_no_aircheck > 1 then
+		biome_lib.blocklist_no_aircheck[#biome_lib.blocklist_no_aircheck+1] = biome_lib.blocklist_no_aircheck[1]
+		table.remove(biome_lib.blocklist_no_aircheck, 1)
 	else
 		if biome_lib.actionslist_no_aircheck[biome_lib.actioncount_no_aircheck.blockhash] then
 			biome_lib:populate_surfaces(
@@ -519,10 +536,10 @@ minetest.register_globalstep(function(dtime)
 	while (#biome_lib.blocklist_aircheck > 0 or #biome_lib.blocklist_no_aircheck > 0)
 	  and biome_lib.globalstep_runtime < 200000 do  -- 0.2 seconds, in uS.
 		if #biome_lib.blocklist_aircheck > 0 then
-			biome_lib:generate_block_with_air_checking()
+			biome_lib:generate_block_with_air_checking(false)
 		end
 		if #biome_lib.blocklist_no_aircheck > 0 then
-			biome_lib:generate_block_no_aircheck()
+			biome_lib:generate_block_no_aircheck(false)
 		end
 		biome_lib.globalstep_runtime = minetest.get_us_time() - biome_lib.globalstep_start_time
 	end
@@ -539,7 +556,7 @@ minetest.register_on_shutdown(function()
 	print("[biome_lib] Stand by, playing out the rest of the aircheck mapblock log")
 	print("(there are "..#biome_lib.blocklist_aircheck.." entries)...")
 	while #biome_lib.blocklist_aircheck > 0 do
-		biome_lib:generate_block_with_air_checking(0.1)
+		biome_lib:generate_block_with_air_checking(true)
 	end
 end)
 
@@ -551,7 +568,7 @@ minetest.register_on_shutdown(function()
 	print("[biome_lib] Stand by, playing out the rest of the no-aircheck mapblock log")
 	print("(there are "..#biome_lib.blocklist_no_aircheck.." entries)...")
 	while #biome_lib.blocklist_no_aircheck > 0 do
-		biome_lib:generate_block_no_aircheck(0.1)
+		biome_lib:generate_block_no_aircheck(true)
 	end
 end)
 
