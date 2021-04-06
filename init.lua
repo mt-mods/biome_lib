@@ -381,13 +381,16 @@ function biome_lib.populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 				if objtype == "table" then
 					if nodes_or_function_or_model.axiom then
 						biome_lib:generate_tree(p_top, nodes_or_function_or_model)
+						biome_lib:dbg("An L-tree was spawned at "..minetest.pos_to_string(p_top))
 						spawned = true
 					else
 						local fdir = nil
 						if biome.random_facedir then
 							fdir = math.random(biome.random_facedir[1], biome.random_facedir[2])
 						end
-						minetest.swap_node(p_top, { name = nodes_or_function_or_model[math.random(#nodes_or_function_or_model)], param2 = fdir })
+						local n=nodes_or_function_or_model[math.random(#nodes_or_function_or_model)]
+						minetest.swap_node(p_top, { name = n, param2 = fdir })
+						biome_lib:dbg("Node \""..n.."\" was randomly picked from a list and placed at "..minetest.pos_to_string(p_top))
 						spawned = true
 					end
 				elseif objtype == "string" and
@@ -397,13 +400,16 @@ function biome_lib.populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 						fdir = math.random(biome.random_facedir[1], biome.random_facedir[2])
 					end
 					minetest.swap_node(p_top, { name = nodes_or_function_or_model, param2 = fdir })
+					biome_lib:dbg("Node \""..nodes_or_function_or_model.."\" was placed at "..minetest.pos_to_string(p_top))
 					spawned = true
 				elseif objtype == "function" then
 					nodes_or_function_or_model(pos)
+					biome_lib:dbg("A function was run on surface node at "..minetest.pos_to_string(pos))
 					spawned = true
 				elseif objtype == "string" and pcall(loadstring(("return %s(...)"):
 					format(nodes_or_function_or_model)),pos) then
 					spawned = true
+					biome_lib:dbg("An obsolete string-specified function was run on surface node at "..minetest.pos_to_string(p_top))
 				else
 					biome_lib:dbg("Warning: Ignored invalid definition for object "..dump(nodes_or_function_or_model).." that was pointed at {"..dump(pos).."}")
 				end
