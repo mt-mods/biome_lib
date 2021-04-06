@@ -424,7 +424,23 @@ end
 
 -- Primary log read-out/mapgen spawner
 
-function biome_lib.generate_block()
+local function confirm_block_surroundings(p)
+	local n=minetest.get_node_or_nil(p)
+	if not n or n.name == "ignore" then return false end
+
+	for x = -32,32,64 do -- step of 64 causes it to only check the 8 corner blocks
+		for y = -32,32,64 do
+			for z = -32,32,64 do
+				local pos = {x=p.x + x, y=p.y + y, z=p.z + z}
+				local n=minetest.get_node_or_nil(pos)
+				if not n or n.name == "ignore" then return false end
+			end
+		end
+	end
+	return true
+end
+
+function biome_lib.generate_block(shutting_down)
 	if not biome_lib.block_log[1] then return end -- the block log is empty
 
 	local minp =		biome_lib.block_log[1][1]
@@ -434,14 +450,23 @@ function biome_lib.generate_block()
 
 	if not biome_lib.pos_hash then -- we need to read the maplock and get the surfaces list
 		biome_lib.pos_hash = {}
-		biome_lib.pos_hash.surface_node_list = airflag
-			and minetest.find_nodes_in_area_under_air(minp, maxp, biome_lib.surfaceslist_aircheck)
-			or minetest.find_nodes_in_area(minp, maxp, biome_lib.surfaceslist_no_aircheck)
-		biome_lib.pos_hash.action_index = 1
-		if #biome_lib.pos_hash.surface_node_list > 0 then
-			biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp)..
-				" has "..#biome_lib.pos_hash.surface_node_list..
-				" surface nodes to work on (airflag="..dump(airflag)..")")
+		if not confirm_block_surroundings(minp) and not shutting_down then -- if any neighbors appear not to be loaded, move this block to the end of the queue
+			biome_lib.block_log[#biome_lib.block_log + 1] = biome_lib.block_log[1]
+			table.remove(biome_lib.block_log, 1)
+			biome_lib.pos_hash = nil
+				biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp)..
+					" had a neighbor not fully emerged, moved it to the end of the queue.")
+			return
+		else
+			biome_lib.pos_hash.surface_node_list = airflag
+				and minetest.find_nodes_in_area_under_air(minp, maxp, biome_lib.surfaceslist_aircheck)
+				or minetest.find_nodes_in_area(minp, maxp, biome_lib.surfaceslist_no_aircheck)
+			biome_lib.pos_hash.action_index = 1
+			if #biome_lib.pos_hash.surface_node_list > 0 then
+				biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp)..
+					" has "..#biome_lib.pos_hash.surface_node_list..
+					" surface nodes to work on (airflag="..dump(airflag)..")")
+			end
 		end
 	elseif not (airflag and biome_lib.actionslist_aircheck[biome_lib.pos_hash.action_index])
 	  and not (not airflag and biome_lib.actionslist_no_aircheck[biome_lib.pos_hash.action_index]) then
@@ -504,7 +529,7 @@ minetest.register_on_shutdown(function()
 	print("[biome_lib] Stand by, playing out the rest of the mapblock log")
 	print("(there are "..#biome_lib.block_log.." entries)...")
 	while #biome_lib.block_log > 0 do
-		biome_lib.generate_block()
+		biome_lib.generate_block(true)
 	end
 end)
 
