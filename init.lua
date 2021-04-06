@@ -481,17 +481,13 @@ end
 
 -- "Play" them back, populating them with new stuff in the process
 
-biome_lib.dtime_limit =     tonumber(minetest.settings:get("biome_lib_dtime_limit")) or 0.5
 local rr = tonumber(minetest.settings:get("biome_lib_queue_run_ratio")) or -100
 
 biome_lib.queue_run_ratio = 100 - rr
 biome_lib.entries_per_step = math.max(-rr, 1)
 
 minetest.register_globalstep(function(dtime)
-	if math.random(100) > biome_lib.queue_run_ratio
-			or dtime > biome_lib.dtime_limit then
-		return
-	end
+	if math.random(100) > biome_lib.queue_run_ratio then return end
 	for s = 1, biome_lib.entries_per_step do
 		biome_lib.generate_block()
 	end
