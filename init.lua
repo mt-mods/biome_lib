@@ -431,8 +431,7 @@ local function confirm_block_surroundings(p)
 	for x = -32,32,64 do -- step of 64 causes it to only check the 8 corner blocks
 		for y = -32,32,64 do
 			for z = -32,32,64 do
-				local pos = {x=p.x + x, y=p.y + y, z=p.z + z}
-				local n=minetest.get_node_or_nil(pos)
+				local n=minetest.get_node_or_nil({x=p.x + x, y=p.y + y, z=p.z + z})
 				if not n or n.name == "ignore" then return false end
 			end
 		end
