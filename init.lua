@@ -512,6 +512,8 @@ biome_lib.queue_run_ratio = 100 - rr
 biome_lib.entries_per_step = math.max(-rr, 1)
 
 minetest.register_globalstep(function(dtime)
+	if not biome_lib.block_log[1] then return end -- the block log is empty
+
 	if math.random(100) > biome_lib.queue_run_ratio then return end
 	for s = 1, biome_lib.entries_per_step do
 		biome_lib.generate_block()
