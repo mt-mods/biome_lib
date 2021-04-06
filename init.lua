@@ -439,6 +439,8 @@ local function confirm_block_surroundings(p)
 	return true
 end
 
+biome_lib.block_recheck_list = {}
+
 function biome_lib.generate_block(shutting_down)
 	if not biome_lib.block_log[1] then return end -- the block log is empty
 
@@ -450,11 +452,11 @@ function biome_lib.generate_block(shutting_down)
 	if not biome_lib.pos_hash then -- we need to read the maplock and get the surfaces list
 		biome_lib.pos_hash = {}
 		if not confirm_block_surroundings(minp) and not shutting_down then -- if any neighbors appear not to be loaded, move this block to the end of the queue
-			biome_lib.block_log[#biome_lib.block_log + 1] = biome_lib.block_log[1]
+			biome_lib.block_recheck_list[#biome_lib.block_recheck_list + 1] = table.copy(biome_lib.block_log[1])
 			table.remove(biome_lib.block_log, 1)
 			biome_lib.pos_hash = nil
 				biome_lib:dbg("Mapblock at "..minetest.pos_to_string(minp)..
-					" had a neighbor not fully emerged, moved it to the end of the queue.")
+					" had a neighbor not fully emerged, moved it to the \"check-later\" list.")
 			return
 		else
 			biome_lib.pos_hash.surface_node_list = airflag
@@ -523,14 +525,21 @@ end)
 -- to prevent unpopulated map areas
 
 minetest.register_on_shutdown(function()
-	if #biome_lib.block_log == 0 then
+	if #biome_lib.block_log + #biome_lib.block_recheck_list == 0 then
 		return
 	end
 
 	print("[biome_lib] Stand by, playing out the rest of the mapblock log")
-	print("(there are "..#biome_lib.block_log.." entries)...")
+	print("(there are "..(#biome_lib.block_log + #biome_lib.block_recheck_list).." entries)...")
 	while #biome_lib.block_log > 0 do
 		biome_lib.generate_block(true)
+	end
+
+	if #biome_lib.block_recheck_list > 0 then
+		biome_lib.block_log = table.copy(biome_lib.block_recheck_list)
+		while #biome_lib.block_log > 0 do
+			biome_lib.generate_block(true)
+		end
 	end
 end)
 
@@ -729,7 +738,7 @@ if DEBUG then
 
 	function biome_lib.show_pending_block_count()
 		if biome_lib.last_count ~= #biome_lib.block_log then
-			biome_lib:dbg("Pending block count: "..#biome_lib.block_log)
+			biome_lib:dbg("Pending block count: "..(#biome_lib.block_log + #biome_lib.block_recheck_list))
 			biome_lib.last_count = #biome_lib.block_log
 		end
 		minetest.after(1, biome_lib.show_pending_block_count)
