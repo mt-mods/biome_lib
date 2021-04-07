@@ -770,6 +770,11 @@ if DEBUG_LEVEL >= 3 then
 		if biome_lib.last_count ~= #biome_lib.block_log then
 			biome_lib.dbg("Pending block count: "..(#biome_lib.block_log + #biome_lib.block_recheck_list), 3)
 			biome_lib.last_count = #biome_lib.block_log
+			biome_lib.queue_idle_flag = false
+		elseif not biome_lib.queue_idle_flag then
+			biome_lib.dbg("Mapblock queue only contains blocks that can't yet be processed.",  3)
+			biome_lib.dbg("Idling the queue until new mapblocks show up.",  3)
+			biome_lib.queue_idle_flag = true
 		end
 		minetest.after(1, biome_lib.show_pending_block_count)
 	end
