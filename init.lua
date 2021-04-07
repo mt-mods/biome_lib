@@ -76,6 +76,9 @@ local rr = tonumber(minetest.settings:get("biome_lib_queue_run_ratio")) or -100
 biome_lib.queue_run_ratio = 100 - rr
 biome_lib.entries_per_step = math.max(-rr, 1)
 
+-- timer runs in microseconds, but I want the user to supply a time in seconds
+biome_lib.block_timeout = (tonumber(minetest.settings:get("biome_lib_block_timeout")) or 300) * 1000000
+
 local time_speed = tonumber(minetest.settings:get("time_speed"))
 
 biome_lib.plantlife_seed_diff = 329	-- needs to be global so other mods can see it
@@ -477,10 +480,12 @@ function biome_lib.generate_block(shutting_down)
 	local pos_hash = 	minetest.hash_node_position(minp)
 
 	if not biome_lib.pos_hash then -- we need to read the maplock and get the surfaces list
+		local now = minetest.get_us_time()
 		biome_lib.pos_hash = {}
 		minetest.load_area(minp)
 		if not confirm_block_surroundings(minp)
-		  and not shutting_down then -- if any neighbors appear not to be loaded, skip this block for now
+		  and not shutting_down
+		  and (blocklog[1][4] + biome_lib.block_timeout) > now then -- if any neighbors appear not to be loaded and the block hasn't expired yet, defer it
 
 			if biome_lib.run_block_recheck_list then
 				biome_lib.block_log[#biome_lib.block_log + 1] = table.copy(biome_lib.block_recheck_list[1])
