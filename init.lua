@@ -70,7 +70,7 @@ biome_lib.default_wet_surfaces = c3 and tableize(c3) or {"default:dirt", "defaul
 biome_lib.default_ground_nodes = c4 and tableize(c4) or {"default:dirt_with_grass"}
 biome_lib.default_grow_nodes =   c5 and tableize(c5) or {"default:dirt_with_grass"}
 
-local DEBUG_LEVEL = tonumber(minetest.settings:get("biome_lib_debug")) or 0
+biome_lib.debug_log_level = tonumber(minetest.settings:get("biome_lib_debug_log_level")) or 0
 
 local rr = tonumber(minetest.settings:get("biome_lib_queue_run_ratio")) or -100
 biome_lib.queue_run_ratio = 100 - rr
@@ -109,7 +109,7 @@ biome_lib.perlin_humidity = PerlinNoise(humidity_seeddiff, humidity_octaves, hum
 
 function biome_lib.dbg(msg, level)
 	local l = tonumber(level) or 0
-	if DEBUG_LEVEL >= l then
+	if biome_lib.debug_log_level >= l then
 		print("[Biome Lib] "..msg)
 		minetest.log("verbose", "[Biome Lib] "..msg)
 	end
@@ -763,7 +763,7 @@ function biome_lib:get_nodedef_field(nodename, fieldname)
 	return minetest.registered_nodes[nodename][fieldname]
 end
 
-if DEBUG_LEVEL >= 3 then
+if biome_lib.debug_log_level >= 3 then
 	biome_lib.last_count = 0
 
 	function biome_lib.show_pending_block_count()
