@@ -472,6 +472,7 @@ function biome_lib.generate_block(shutting_down)
 
 	if not biome_lib.pos_hash then -- we need to read the maplock and get the surfaces list
 		biome_lib.pos_hash = {}
+		minetest.load_area(minp)
 		if not confirm_block_surroundings(minp)
 		  and not shutting_down then -- if any neighbors appear not to be loaded, skip this block for now
 
