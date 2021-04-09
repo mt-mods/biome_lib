@@ -78,12 +78,15 @@ biome_lib.entries_per_step = math.max(-rr, 1)
 
 -- the timer that manages the block timeout is in microseconds, but the timer
 -- that manages the queue wakeup call has to be in seconds, and works best if
--- it takes a little longer than the block timeout interval.
+-- it takes a fraction of the block timeout interval.
 
 local t = tonumber(minetest.settings:get("biome_lib_block_timeout")) or 300
 
 biome_lib.block_timeout = t * 1000000
-biome_lib.block_queue_wakeup_time = t * 1.1
+
+-- we don't want the wakeup function to trigger TOO often,
+-- in case the user's block timeout setting is really low
+biome_lib.block_queue_wakeup_time = math.min(t/2, math.max(20, t/10))
 
 local time_speed = tonumber(minetest.settings:get("time_speed"))
 
@@ -492,7 +495,7 @@ function biome_lib.generate_block(shutting_down)
 		if not confirm_block_surroundings(minp)
 		  and not shutting_down
 		  and (blocklog[1][4] + biome_lib.block_timeout) > now then -- if any neighbors appear not to be loaded and the block hasn't expired yet, defer it
-			blocklog[1][4] = now -- reset the timer, give this block more time to "cook"
+
 			if biome_lib.run_block_recheck_list then
 				biome_lib.block_log[#biome_lib.block_log + 1] = table.copy(biome_lib.block_recheck_list[1])
 				table.remove(biome_lib.block_recheck_list, 1)
@@ -566,14 +569,12 @@ end)
 -- if the player isn't currently exploring (i.e. they're just playing in one area)
 
 function biome_lib.wake_up_queue()
-	if #biome_lib.block_recheck_list > 0
+	if #biome_lib.block_recheck_list > 1
 	  and #biome_lib.block_log == 0 then
-		-- we move the second element and not the first because we can't be
-		-- sure if the recheck list's first item is the one currently acted upon
-		-- (else it'd be the first item in the main block log)
-		biome_lib.block_log = table.copy(biome_lib.block_recheck_list)
-		biome_lib.block_recheck_list = {}
-		biome_lib.queue_idle_flag = false
+		biome_lib.block_log[#biome_lib.block_log + 1] =
+			table.copy(biome_lib.block_recheck_list[#biome_lib.block_recheck_list])
+		biome_lib.block_recheck_list[#biome_lib.block_recheck_list] = nil
+		biome_lib.run_block_recheck_list = true
 		biome_lib.dbg("Woke-up the map queue to give old blocks a chance to time-out.", 3)
 	end
 	minetest.after(biome_lib.block_queue_wakeup_time, biome_lib.wake_up_queue)
