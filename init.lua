@@ -584,23 +584,54 @@ biome_lib.wake_up_queue()
 -- Play out the entire log all at once on shutdown
 -- to prevent unpopulated map areas
 
+local function format_time(t)
+	if t > 59999999 then
+		return os.date("!%M minutes and %S seconds", math.ceil(t/1000000))
+	else
+		return os.date("!%S seconds", math.ceil(t/1000000))
+	end
+end
+
+function biome_lib.check_remaining_time()
+	if minetest.get_us_time() > (biome_lib.shutdown_last_timestamp + 10000000) then -- report progress every 10s
+		biome_lib.shutdown_last_timestamp = minetest.get_us_time()
+
+		local entries_remaining = #biome_lib.block_log + #biome_lib.block_recheck_list
+
+		local total_purged = biome_lib.starting_count - entries_remaining
+		local elapsed_time = biome_lib.shutdown_last_timestamp - biome_lib.shutdown_start_time
+		biome_lib.dbg(string.format("%i entries, approximately %s remaining.",
+			entries_remaining, format_time(elapsed_time/total_purged * entries_remaining)))
+	end
+end
+
 minetest.register_on_shutdown(function()
-	if #biome_lib.block_log + #biome_lib.block_recheck_list == 0 then
+	biome_lib.shutdown_start_time = minetest.get_us_time()
+	biome_lib.shutdown_last_timestamp = minetest.get_us_time()+1
+
+	biome_lib.starting_count = #biome_lib.block_log + #biome_lib.block_recheck_list
+
+	if biome_lib.starting_count == 0 then
 		return
 	end
 
-	biome_lib.dbg("[biome_lib] Stand by, playing out the rest of the mapblock log", 0)
-	biome_lib.dbg("(there are "..(#biome_lib.block_log + #biome_lib.block_recheck_list).." entries)...", 0)
+	biome_lib.dbg("Stand by, purging the mapblock log "..
+		"(there are "..(#biome_lib.block_log + #biome_lib.block_recheck_list).." entries) ...", 0)
+
 	while #biome_lib.block_log > 0 do
 		biome_lib.generate_block(true)
+		biome_lib.check_remaining_time()
 	end
 
 	if #biome_lib.block_recheck_list > 0 then
 		biome_lib.block_log = table.copy(biome_lib.block_recheck_list)
 		while #biome_lib.block_log > 0 do
 			biome_lib.generate_block(true)
+			biome_lib.check_remaining_time()
 		end
 	end
+	biome_lib.dbg("Log purge completed after "..
+		format_time(minetest.get_us_time() - biome_lib.shutdown_start_time)..".", 0)
 end)
 
 -- The spawning ABM
