@@ -33,6 +33,10 @@ biome_lib.actionslist_no_aircheck = {}
 biome_lib.surfaceslist_aircheck = {}
 biome_lib.surfaceslist_no_aircheck = {}
 
+-- the mapgen rarely creates useful surfaces outside this range, but mods can
+-- still specify a wider range if needed.
+biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 } 
+
 biome_lib.modpath = minetest.get_modpath("biome_lib")
 
 local function tableize(s)
@@ -153,8 +157,8 @@ end
 
 function biome_lib:set_defaults(biome)
 	biome.seed_diff = biome.seed_diff or 0
-	biome.min_elevation = biome.min_elevation or -31000
-	biome.max_elevation = biome.max_elevation or 31000
+	biome.min_elevation = biome.min_elevation or biome_lib.mapgen_elevation_limit.min
+	biome.max_elevation = biome.max_elevation or biome_lib.mapgen_elevation_limit.max
 	biome.temp_min = biome.temp_min or 1
 	biome.temp_max = biome.temp_max or -1
 	biome.humidity_min = biome.humidity_min or 1
@@ -205,6 +209,9 @@ function biome_lib:register_generate_plant(biomedef, nodes_or_function_or_model)
 	  and not string.find(nodes_or_function_or_model, ":") then
 		biome_lib.dbg("Warning: Registered function call using deprecated string method: "..dump(nodes_or_function_or_model), 2)
 	end
+
+	biome_lib.mapgen_elevation_limit.min = math.min(biomedef.min_elevation or 0, biome_lib.mapgen_elevation_limit.min)
+	biome_lib.mapgen_elevation_limit.max = math.max(biomedef.max_elevation or 0, biome_lib.mapgen_elevation_limit.max)
 
 	if biomedef.check_air == false then 
 		biome_lib.dbg("Register no-air-check mapgen hook: "..dump(nodes_or_function_or_model), 3)
@@ -859,6 +866,8 @@ end
 minetest.after(0, function()
 	biome_lib.dbg("Registered a total of "..(#biome_lib.surfaceslist_aircheck)+(#biome_lib.surfaceslist_no_aircheck).." surface types to be evaluated, spread", 0)
 	biome_lib.dbg("across "..#biome_lib.actionslist_aircheck.." actions with air-checking and "..#biome_lib.actionslist_no_aircheck.." actions without.", 0)
+	biome_lib.dbg("within an elevation range of "..biome_lib.mapgen_elevation_limit.min.." and "..biome_lib.mapgen_elevation_limit.max.." meters.", 0)
+
 end)
 
 biome_lib.dbg("[Biome Lib] Loaded", 0)
