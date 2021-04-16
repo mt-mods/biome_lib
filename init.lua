@@ -638,7 +638,7 @@ minetest.register_on_shutdown(function()
 
 	if #biome_lib.block_recheck_list > 0 then
 		biome_lib.block_log = table.copy(biome_lib.block_recheck_list)
-		biome_lib.block_recheck_list = nil
+		biome_lib.block_recheck_list = {}
 		while #biome_lib.block_log > 0 do
 			biome_lib.generate_block(true)
 			biome_lib.check_remaining_time()
