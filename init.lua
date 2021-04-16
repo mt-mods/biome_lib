@@ -511,8 +511,13 @@ function biome_lib.generate_block(shutting_down)
 			biome_lib.pos_hash.surface_node_list = airflag
 				and minetest.find_nodes_in_area_under_air(minp, maxp, biome_lib.surfaceslist_aircheck)
 				or minetest.find_nodes_in_area(minp, maxp, biome_lib.surfaceslist_no_aircheck)
-			biome_lib.pos_hash.action_index = 1
-			if #biome_lib.pos_hash.surface_node_list > 0 then
+			if #biome_lib.pos_hash.surface_node_list == 0 then
+				biome_lib.dbg("Mapblock at "..minetest.pos_to_string(minp).." dequeued:  no detected surfaces.", 4)
+				table.remove(blocklog, 1)
+				biome_lib.pos_hash = nil
+				return
+			else
+				biome_lib.pos_hash.action_index = 1
 				biome_lib.dbg("Mapblock at "..minetest.pos_to_string(minp)..
 					" has "..#biome_lib.pos_hash.surface_node_list..
 					" surface nodes to work on (airflag="..dump(airflag)..")", 4)
