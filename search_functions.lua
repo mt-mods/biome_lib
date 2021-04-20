@@ -2,7 +2,7 @@
 -- function to decide if a node has a wall that's in verticals_list{}
 -- returns wall direction of valid node, or nil if invalid.
 
-function biome_lib:find_adjacent_wall(pos, verticals, randomflag)
+function biome_lib.find_adjacent_wall(pos, verticals, randomflag)
 	local verts = dump(verticals)
 	if randomflag then
 		local walltab = {}
@@ -27,7 +27,7 @@ end
 -- node that matches the ground table.  Returns the new position, or nil if
 -- height limit is exceeded before finding it.
 
-function biome_lib:search_downward(pos, heightlimit, ground)
+function biome_lib.search_downward(pos, heightlimit, ground)
 	for i = 0, heightlimit do
 		if string.find(dump(ground), minetest.get_node({x=pos.x, y=pos.y-i, z = pos.z}).name) then
 			return {x=pos.x, y=pos.y-i, z = pos.z}
@@ -36,7 +36,7 @@ function biome_lib:search_downward(pos, heightlimit, ground)
 	return false
 end
 
-function biome_lib:find_open_side(pos)
+function biome_lib.find_open_side(pos)
 	if minetest.get_node({ x=pos.x-1, y=pos.y, z=pos.z }).name == "air" then
 		return {newpos = { x=pos.x-1, y=pos.y, z=pos.z }, facedir = 2}
 	end

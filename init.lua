@@ -147,7 +147,7 @@ local function get_biome_data(pos, perlin_fertile)
 	return fertility, temperature, humidity
 end
 
-function biome_lib:is_node_loaded(node_pos)
+function biome_lib.is_node_loaded(node_pos)
 	local n = minetest.get_node_or_nil(node_pos)
 	if (not n) or (n.name == "ignore") then
 		return false
@@ -155,7 +155,7 @@ function biome_lib:is_node_loaded(node_pos)
 	return true
 end
 
-function biome_lib:set_defaults(biome)
+function biome_lib.set_defaults(biome)
 	biome.seed_diff = biome.seed_diff or 0
 	biome.min_elevation = biome.min_elevation or biome_lib.mapgen_elevation_limit.min
 	biome.max_elevation = biome.max_elevation or biome_lib.mapgen_elevation_limit.max
@@ -193,7 +193,7 @@ end
 -- register the list of surfaces to spawn stuff on, filtering out all duplicates.
 -- separate the items by air-checking or non-air-checking map eval methods
 
-function biome_lib:register_generate_plant(biomedef, nodes_or_function_or_model)
+function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 
 	-- if calling code passes an undefined node for a surface or 
 	-- as a node to be spawned, don't register an action for it.
@@ -348,7 +348,7 @@ end
 function biome_lib.populate_surfaces(biome, nodes_or_function_or_model, snodes, checkair)
 	local items_added = 0
 
-	biome_lib:set_defaults(biome)
+	biome_lib.set_defaults(biome)
 
 	-- filter stage 1 - find nodes from the supplied surfaces that are within the current biome.
 
@@ -408,7 +408,7 @@ function biome_lib.populate_surfaces(biome, nodes_or_function_or_model, snodes, 
 
 				if objtype == "table" then
 					if nodes_or_function_or_model.axiom then
-						biome_lib:generate_tree(p_top, nodes_or_function_or_model)
+						biome_lib.generate_ltree(p_top, nodes_or_function_or_model)
 						biome_lib.dbg("An L-tree was spawned at "..minetest.pos_to_string(p_top), 4)
 						spawned = true
 					else
@@ -650,7 +650,7 @@ end)
 
 -- The spawning ABM
 
-function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
+function biome_lib.register_active_spawner(sd,sp,sr,sc,ss,sa)
 
 	local biome = {}
 
@@ -671,7 +671,7 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 		biome.interval = 1
 	end
 
-	biome_lib:set_defaults(biome)
+	biome_lib.set_defaults(biome)
 	biome.spawn_plants_count = #(biome.spawn_plants)
 
 	local n
@@ -699,7 +699,7 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 				and fertility > biome.plantlife_limit
 				and temperature <= biome.temp_min and temperature >= biome.temp_max
 				and humidity <= biome.humidity_min and humidity >= biome.humidity_max
-				and biome_lib:is_node_loaded(p_top)
+				and biome_lib.is_node_loaded(p_top)
 
 			if not pos_biome_ok then
 				return -- Outside of biome
@@ -743,7 +743,7 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 				return -- Not enough air
 			end
 
-			local walldir = biome_lib:find_adjacent_wall(p_top, biome.verticals_list, biome.choose_random_wall)
+			local walldir = biome_lib.find_adjacent_wall(p_top, biome.verticals_list, biome.choose_random_wall)
 			if biome.alt_wallnode and walldir then
 				if n_top.name == "air" then
 					minetest.swap_node(p_top, { name = biome.alt_wallnode, param2 = walldir })
@@ -778,7 +778,7 @@ function biome_lib:spawn_on_surfaces(sd,sp,sr,sc,ss,sa)
 				minetest.swap_node(pos, { name = plant_to_spawn, param2 = fdir })
 
 			elseif biome.spawn_on_side then
-				local onside = biome_lib:find_open_side(pos)
+				local onside = biome_lib.find_open_side(pos)
 				if onside then
 					minetest.swap_node(onside.newpos, { name = plant_to_spawn, param2 = onside.facedir })
 				end
@@ -794,11 +794,11 @@ end
 -- Function to decide how to replace a plant - either grow it, replace it with
 -- a tree, run a function, or die with an error.
 
-function biome_lib:replace_object(pos, replacement, grow_function, walldir, seeddiff)
+function biome_lib.replace_plant(pos, replacement, grow_function, walldir, seeddiff)
 	local growtype = type(grow_function)
 	if growtype == "table" then
 		minetest.swap_node(pos, biome_lib.air)
-		biome_lib:grow_tree(pos, grow_function)
+		biome_lib.grow_ltree(pos, grow_function)
 		return
 	elseif growtype == "function" then
 		local perlin_fertile_area = minetest.get_perlin(seeddiff, perlin_octaves, perlin_persistence, perlin_scale)
@@ -831,7 +831,7 @@ end
 
 -- read a field from a node's definition
 
-function biome_lib:get_nodedef_field(nodename, fieldname)
+function biome_lib.get_nodedef_field(nodename, fieldname)
 	if not minetest.registered_nodes[nodename] then
 		return nil
 	end
@@ -862,6 +862,11 @@ if biome_lib.debug_log_level >= 3 then
 
 	biome_lib.show_pending_block_count()
 end
+
+-- backward compat
+dofile(biome_lib.modpath .. "/compat.lua")
+
+-- and report the final registration results:
 
 minetest.after(0, function()
 	biome_lib.dbg("Registered a total of "..(#biome_lib.surfaceslist_aircheck)+(#biome_lib.surfaceslist_no_aircheck).." surface types to be evaluated, spread", 0)
