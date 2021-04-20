@@ -332,7 +332,6 @@ will be called in the form:
 
 	somefunction(pos)
 
-
 =====
 biome_lib.update_plant(options)
 
@@ -496,7 +495,6 @@ Perlin noise used.
 The first one is for a "fertile ground" layer, which I tend to refer to as the
 generic "stuff can potentially grow here" layer.  Its values are hard-coded:
 
-	biome_lib.plantlife_seed_diff = 329
 	perlin_octaves = 3
 	perlin_persistence = 0.6
 	perlin_scale = 100
@@ -593,3 +591,66 @@ See settingtypes.txt for a list.  Any item listed there can be changed either
 by adding it to your minetest.conf, or by using the "all settings" menu in
 Minetest, whatever's appropriate for your particular setup.
 
+==================
+Engine Decorations
+==================
+
+If a call to biome_lib.register_on_generate() contains items and biome
+definition settings that are suitable, biome_lib will pass that call on to the
+engine instead, to use its built-in decorations feature, since it'll be much
+faster than Lua.
+
+For this to work, first the item to be added must either be a node, or a
+table with a list of nodes that biome_lib would normally pick from randomly.
+That is to say, you cannot specify an L-tree or a function here, as the engine
+does not support that sort of thing (biome_lib will just switch to its normal
+handling if you do).
+
+Second, these biome definition items must not be present:
+
+* below_nodes
+* avoid_nodes
+* avoid_radius
+* neighbors
+* ncount
+* depth
+* near_nodes_size
+* near_nodes_vertical
+* temp_min
+* temp_max
+* verticals_list
+* delete_above
+* delete_above_surround
+
+The plantlife_limit definition item is ignored when checking if a particular
+call can be routed to the engine.
+
+The call given to the engine will use the remaining biome definition items in
+the following manner:
+
+deco_type =		"simple",
+flags =			"all_floors"
+decoration =	node or table with node list
+place_on =		surface
+y_min =			min_elevation
+y_max =			max_elevation
+spawn_by =		near_nodes
+num_spawn_by = 	near_nodes_count
+param2 = 		\_ set to the range specified by the biome definition's
+param2_max = 	/  random_facedir table, if present, otherwise omitted
+noise_params = {
+	octaves = biome_lib.fertile_perlin_octaves,
+	persist = biome_lib.fertile_perlin_persistence * (250/biome_lib.fertile_perlin_scale),
+	scale = ((100-biome.rarity)/100) * (math.min(biome.max_count, 6400)/6400),
+	seed = biome.seed_diff,
+	offset = 0,
+	spread = {x = 100, y = 100, z = 100},
+	lacunarity = 2,
+	flags = "absvalue"
+}
+
+If the biome definition's check_air setting is false, "force_placement" is
+added to the decoration's flags setting.
+
+If the biome def's spawn_replace_node is set to true, the decoration's
+place_offset_y is set to -1 (otherwise it is omitted).

@@ -8,9 +8,11 @@ biome_lib.actionslist_no_aircheck = {}
 biome_lib.surfaceslist_aircheck = {}
 biome_lib.surfaceslist_no_aircheck = {}
 
-local perlin_octaves = 3
-local perlin_persistence = 0.6
-local perlin_scale = 100
+biome_lib.registered_decorations = {}
+
+biome_lib.fertile_perlin_octaves = 3
+biome_lib.fertile_perlin_persistence = 0.6
+biome_lib.fertile_perlin_scale = 100
 
 local temperature_seeddiff = 112
 local temperature_octaves = 3
@@ -39,7 +41,6 @@ biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 }
 
 biome_lib.perlin_temperature = PerlinNoise(temperature_seeddiff, temperature_octaves, temperature_persistence, temperature_scale)
 biome_lib.perlin_humidity = PerlinNoise(humidity_seeddiff, humidity_octaves, humidity_persistence, humidity_scale)
-biome_lib.plantlife_seed_diff = 329 -- needs to be global so other mods can see it
 
 -- Local functions
 
@@ -80,6 +81,7 @@ function biome_lib.is_node_loaded(node_pos)
 end
 
 function biome_lib.set_defaults(biome)
+
 	biome.seed_diff = biome.seed_diff or 0
 	biome.min_elevation = biome.min_elevation or biome_lib.mapgen_elevation_limit.min
 	biome.max_elevation = biome.max_elevation or biome_lib.mapgen_elevation_limit.max
@@ -105,6 +107,7 @@ function biome_lib.set_defaults(biome)
 	biome.light_max = biome.light_max or 15
 	biome.depth_max = biome.depth_max or 1
 	biome.facedir = biome.facedir or 0
+	return biome
 end
 
 local function search_table(t, s)
@@ -137,7 +140,14 @@ function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 	biome_lib.mapgen_elevation_limit.min = math.min(biomedef.min_elevation or 0, biome_lib.mapgen_elevation_limit.min)
 	biome_lib.mapgen_elevation_limit.max = math.max(biomedef.max_elevation or 0, biome_lib.mapgen_elevation_limit.max)
 
-	if biomedef.check_air == false then 
+	local decor_def = biome_lib.can_use_decorations(biomedef, nodes_or_function_or_model)
+
+	if decor_def then
+		biome_lib.dbg("Using engine decorations instead of biome_lib functions for node(s): "..dump(nodes_or_function_or_model), 3)
+		biome_lib.registered_decorations[#biome_lib.registered_decorations + 1] = nodes_or_function_or_model
+		minetest.register_decoration(decor_def)
+		return
+	elseif biomedef.check_air == false then 
 		biome_lib.dbg("Register no-air-check mapgen hook: "..dump(nodes_or_function_or_model), 3)
 		biome_lib.actionslist_no_aircheck[#biome_lib.actionslist_no_aircheck + 1] = { biomedef, nodes_or_function_or_model }
 		local s = biomedef.surface
@@ -269,15 +279,15 @@ local function populate_single_surface(biome, pos, perlin_fertile_area, checkair
 	return true
 end
 
-function biome_lib.populate_surfaces(biome, nodes_or_function_or_model, snodes, checkair)
+function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, checkair)
 	local items_added = 0
 
-	biome_lib.set_defaults(biome)
+	local biome = biome_lib.set_defaults(b)
 
 	-- filter stage 1 - find nodes from the supplied surfaces that are within the current biome.
 
 	local in_biome_nodes = {}
-	local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, perlin_octaves, perlin_persistence, perlin_scale)
+	local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 
 	for i = 1, #snodes do
 		local pos = vector.new(snodes[i])
@@ -490,112 +500,31 @@ function biome_lib.generate_block(shutting_down)
 	end
 end
 
--- "Play" them back, populating them with new stuff in the process
-
-minetest.register_globalstep(function(dtime)
-	if not biome_lib.block_log[1] then return end -- the block log is empty
-
-	if math.random(100) > biome_lib.queue_ratio then return end
-	for s = 1, biome_lib.entries_per_step do
-		biome_lib.generate_block()
-	end
-end)
-
--- Periodically wake-up the queue to give old blocks a chance to time-out
--- if the player isn't currently exploring (i.e. they're just playing in one area)
-
-function biome_lib.wake_up_queue()
-	if #biome_lib.block_recheck_list > 1
-	  and #biome_lib.block_log == 0 then
-		biome_lib.block_log[#biome_lib.block_log + 1] =
-			table.copy(biome_lib.block_recheck_list[#biome_lib.block_recheck_list])
-		biome_lib.block_recheck_list[#biome_lib.block_recheck_list] = nil
-		biome_lib.run_block_recheck_list = true
-		biome_lib.dbg("Woke-up the map queue to give old blocks a chance to time-out.", 3)
-	end
-	minetest.after(biome_lib.block_queue_wakeup_time, biome_lib.wake_up_queue)
-end
-
-biome_lib.wake_up_queue()
-
--- Play out the entire log all at once on shutdown
--- to prevent unpopulated map areas
-
-local function format_time(t)
-	if t > 59999999 then
-		return os.date("!%M minutes and %S seconds", math.ceil(t/1000000))
-	else
-		return os.date("!%S seconds", math.ceil(t/1000000))
-	end
-end
-
-function biome_lib.check_remaining_time()
-	if minetest.get_us_time() > (biome_lib.shutdown_last_timestamp + 10000000) then -- report progress every 10s
-		biome_lib.shutdown_last_timestamp = minetest.get_us_time()
-
-		local entries_remaining = #biome_lib.block_log + #biome_lib.block_recheck_list
-
-		local total_purged = biome_lib.starting_count - entries_remaining
-		local elapsed_time = biome_lib.shutdown_last_timestamp - biome_lib.shutdown_start_time
-		biome_lib.dbg(string.format("%i entries, approximately %s remaining.",
-			entries_remaining, format_time(elapsed_time/total_purged * entries_remaining)))
-	end
-end
-
-minetest.register_on_shutdown(function()
-	biome_lib.shutdown_start_time = minetest.get_us_time()
-	biome_lib.shutdown_last_timestamp = minetest.get_us_time()+1
-
-	biome_lib.starting_count = #biome_lib.block_log + #biome_lib.block_recheck_list
-
-	if biome_lib.starting_count == 0 then
-		return
-	end
-
-	biome_lib.dbg("Stand by, purging the mapblock log "..
-		"(there are "..biome_lib.starting_count.." entries) ...", 0)
-
-	while #biome_lib.block_log > 0 do
-		biome_lib.generate_block(true)
-		biome_lib.check_remaining_time()
-	end
-
-	if #biome_lib.block_recheck_list > 0 then
-		biome_lib.block_log = table.copy(biome_lib.block_recheck_list)
-		biome_lib.block_recheck_list = {}
-		while #biome_lib.block_log > 0 do
-			biome_lib.generate_block(true)
-			biome_lib.check_remaining_time()
-		end
-	end
-	biome_lib.dbg("Log purge completed after "..
-		format_time(minetest.get_us_time() - biome_lib.shutdown_start_time)..".", 0)
-end)
-
 -- The spawning ABM
 
 function biome_lib.register_active_spawner(sd,sp,sr,sc,ss,sa)
 
-	local biome = {}
+	local b = {}
 
 	if type(sd) ~= "table" then
-		biome.spawn_delay = sd	-- old api expects ABM interval param here.
-		biome.spawn_plants = {sp}
-		biome.avoid_radius = sr
-		biome.spawn_chance = sc
-		biome.spawn_surfaces = {ss}
-		biome.avoid_nodes = sa
+		b.spawn_delay = sd	-- old api expects ABM interval param here.
+		b.spawn_plants = {sp}
+		b.avoid_radius = sr
+		b.spawn_chance = sc
+		b.spawn_surfaces = {ss}
+		b.avoid_nodes = sa
 	else
-		biome = sd
+		b = sd
 	end
 
-	if biome.spawn_delay*biome_lib.time_scale >= 1 then
-		biome.interval = biome.spawn_delay*biome_lib.time_scale
+	if b.spawn_delay*biome_lib.time_scale >= 1 then
+		b.interval = b.spawn_delay*biome_lib.time_scale
 	else
-		biome.interval = 1
+		b.interval = 1
 	end
 
-	biome_lib.set_defaults(biome)
+	local biome = biome_lib.set_defaults(b)
+
 	biome.spawn_plants_count = #(biome.spawn_plants)
 
 	local n
@@ -615,7 +544,7 @@ function biome_lib.register_active_spawner(sd,sp,sr,sc,ss,sa)
 		action = function(pos, node, active_object_count, active_object_count_wider)
 			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }	
 			local n_top = minetest.get_node(p_top)
-			local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, perlin_octaves, perlin_persistence, perlin_scale)
+			local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 
 			local fertility, temperature, humidity = get_biome_data(pos, perlin_fertile_area)
 
@@ -725,12 +654,12 @@ function biome_lib.replace_plant(pos, replacement, grow_function, walldir, seedd
 		biome_lib.grow_ltree(pos, grow_function)
 		return
 	elseif growtype == "function" then
-		local perlin_fertile_area = minetest.get_perlin(seeddiff, perlin_octaves, perlin_persistence, perlin_scale)
+		local perlin_fertile_area = minetest.get_perlin(seeddiff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 		local fertility, temperature, _ = get_biome_data(pos, perlin_fertile_area)
 		grow_function(pos, fertility, temperature, walldir)
 		return
 	elseif growtype == "string" then
-		local perlin_fertile_area = minetest.get_perlin(seeddiff, perlin_octaves, perlin_persistence, perlin_scale)
+		local perlin_fertile_area = minetest.get_perlin(seeddiff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 		local fertility, temperature, _ = get_biome_data(pos, perlin_fertile_area)
 		assert(loadstring(grow_function.."(...)"))(pos, fertility, temperature, walldir)
 		return
@@ -757,29 +686,4 @@ function biome_lib.get_nodedef_field(nodename, fieldname)
 		return nil
 	end
 	return minetest.registered_nodes[nodename][fieldname]
-end
-
-if biome_lib.debug_log_level >= 3 then
-	biome_lib.last_count = 0
-
-	function biome_lib.show_pending_block_count()
-		if biome_lib.last_count ~= #biome_lib.block_log then
-			biome_lib.dbg(string.format("Pending block counts - ready to process: %-8icurrently deferred: %i",
-				#biome_lib.block_log, #biome_lib.block_recheck_list), 3)
-			biome_lib.last_count = #biome_lib.block_log
-			biome_lib.queue_idle_flag = false
-		elseif not biome_lib.queue_idle_flag then
-			if #biome_lib.block_recheck_list > 0 then
-				biome_lib.dbg("Mapblock queue only contains blocks that can't yet be processed.",  3)
-				biome_lib.dbg("Idling the queue until new blocks arrive or the next wake-up call occurs.",  3)
-			else
-				biome_lib.dbg("Mapblock queue has run dry.",  3)
-				biome_lib.dbg("Idling the queue until new blocks arrive.",  3)
-			end
-			biome_lib.queue_idle_flag = true
-		end
-		minetest.after(1, biome_lib.show_pending_block_count)
-	end
-
-	biome_lib.show_pending_block_count()
 end
