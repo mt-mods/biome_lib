@@ -1,5 +1,3 @@
-local time_scale = ...
-
 -- The growing ABM
 
 function biome_lib.check_surface(name, nodes)
@@ -34,8 +32,8 @@ function biome_lib.update_plant(opts)
 
 	options.label = options.label or "biome_lib.update_plant(): "..n
 
-	if options.grow_delay*time_scale >= 1 then
-		options.interval = options.grow_delay*time_scale
+	if options.grow_delay*biome_lib.time_scale >= 1 then
+		options.interval = options.grow_delay*biome_lib.time_scale
 	else
 		options.interval = 1
 	end
