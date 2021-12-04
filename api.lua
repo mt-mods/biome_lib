@@ -378,7 +378,7 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 					biome_lib.dbg("Node \""..nodes_or_function_or_model.."\" was placed at "..minetest.pos_to_string(p_top), 4)
 					spawned = true
 				elseif objtype == "function" then
-					nodes_or_function_or_model(pos)
+					nodes_or_function_or_model(p_top, fdir)
 					biome_lib.dbg("A function was run on surface node at "..minetest.pos_to_string(pos), 4)
 					spawned = true
 				elseif objtype == "string" and pcall(loadstring(("return %s(...)"):
