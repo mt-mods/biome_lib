@@ -323,13 +323,13 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 					p_top = onside.newpos
 					fdir = onside.facedir
 				else
-				  will_place = false
+					will_place = false
 				end
 			elseif biome.spawn_on_bottom then
 				if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == "air" then
 					p_top.y = pos.y - 1
 				else
-				  will_place = false
+					will_place = false
 				end
 			elseif biome.spawn_replace_node then
 				p_top.y = pos.y
