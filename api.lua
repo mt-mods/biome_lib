@@ -311,7 +311,6 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 			local pos = in_biome_nodes[math.random(1, num_in_biome_nodes)]
 
 			local will_place = true
-			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 			local fdir = nil
 			if biome.random_facedir then
 				fdir = math.random(biome.random_facedir[1], biome.random_facedir[2])
@@ -320,20 +319,22 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 			if biome.spawn_on_side then
 				local onside = biome_lib.find_open_side(pos)
 				if onside then
-					p_top = onside.newpos
+					pos = onside.newpos
 					fdir = onside.facedir
 				else
 					will_place = false
 				end
 			elseif biome.spawn_on_bottom then
 				if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == "air" then
-					p_top.y = pos.y - 1
+					pos.y = pos.y - 1
 				else
 					will_place = false
 				end
 			elseif biome.spawn_replace_node then
-				p_top.y = pos.y
+				pos.y = pos.y-1
 			end
+			
+			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 
 			if will_place and not (biome.avoid_nodes and biome.avoid_radius
 					and minetest.find_node_near(p_top, biome.avoid_radius
@@ -378,7 +379,7 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 					biome_lib.dbg("Node \""..nodes_or_function_or_model.."\" was placed at "..minetest.pos_to_string(p_top), 4)
 					spawned = true
 				elseif objtype == "function" then
-					nodes_or_function_or_model(p_top, fdir)
+					nodes_or_function_or_model(pos, fdir)
 					biome_lib.dbg("A function was run on surface node at "..minetest.pos_to_string(pos), 4)
 					spawned = true
 				elseif objtype == "string" and pcall(loadstring(("return %s(...)"):
