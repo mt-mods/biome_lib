@@ -35,7 +35,7 @@ biome_lib.air = {name = "air"}
 
 -- the mapgen rarely creates useful surfaces outside this range, but mods can
 -- still specify a wider range if needed.
-biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 } 
+biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 }
 
 --PerlinNoise(seed, octaves, persistence, scale)
 
@@ -122,7 +122,7 @@ end
 
 function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 
-	-- if calling code passes an undefined node for a surface or 
+	-- if calling code passes an undefined node for a surface or
 	-- as a node to be spawned, don't register an action for it.
 
 	if type(nodes_or_function_or_model) == "string"
@@ -147,7 +147,7 @@ function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 		biome_lib.registered_decorations[#biome_lib.registered_decorations + 1] = nodes_or_function_or_model
 		minetest.register_decoration(decor_def)
 		return
-	elseif biomedef.check_air == false then 
+	elseif biomedef.check_air == false then
 		biome_lib.dbg("Register no-air-check mapgen hook: "..dump(nodes_or_function_or_model), 3)
 		biome_lib.actionslist_no_aircheck[#biome_lib.actionslist_no_aircheck + 1] = { biomedef, nodes_or_function_or_model }
 		local s = biomedef.surface
@@ -214,7 +214,7 @@ local function populate_single_surface(biome, pos, perlin_fertile_area, checkair
 		and fertility > biome.plantlife_limit
 		and temperature <= biome.temp_min and temperature >= biome.temp_max
 		and humidity <= biome.humidity_min and humidity >= biome.humidity_max
-	
+
 	if not pos_biome_ok then
 		return -- Y position mismatch, outside of biome
 	end
@@ -229,7 +229,7 @@ local function populate_single_surface(biome, pos, perlin_fertile_area, checkair
 		else
 			if string.find(biome_surfaces_string, "group:") then
 				for j = 1, #biome.surface do
-					if string.find(biome.surface[j], "^group:") 
+					if string.find(biome.surface[j], "^group:")
 					  and minetest.get_item_group(dest_node.name, biome.surface[j]) then
 						surface_ok = true
 						break
@@ -241,7 +241,7 @@ local function populate_single_surface(biome, pos, perlin_fertile_area, checkair
 			minetest.get_node({ x = pos.x, y = pos.y-biome.depth-1, z = pos.z }).name) then
 		surface_ok = true
 	end
-	
+
 	if not surface_ok then
 		return -- Surface does not match the given node group/name
 	end
@@ -269,7 +269,7 @@ local function populate_single_surface(biome, pos, perlin_fertile_area, checkair
 	if biome.near_nodes and
 			#minetest.find_nodes_in_area(
 				{x=pos.x-biome.near_nodes_size, y=pos.y-biome.near_nodes_vertical, z=pos.z-biome.near_nodes_size},
-				{x=pos.x+biome.near_nodes_size, y=pos.y+biome.near_nodes_vertical, z=pos.z+biome.near_nodes_size}, 
+				{x=pos.x+biome.near_nodes_size, y=pos.y+biome.near_nodes_vertical, z=pos.z+biome.near_nodes_size},
 				biome.near_nodes
 			) < biome.near_nodes_count then
 		return -- Long distance neighbours do not match
@@ -309,12 +309,34 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 		local spawned = false
 		while tries < 2 and not spawned do
 			local pos = in_biome_nodes[math.random(1, num_in_biome_nodes)]
-			if biome.spawn_replace_node then
+
+			local will_place = true
+			local fdir = nil
+			if biome.random_facedir then
+				fdir = math.random(biome.random_facedir[1], biome.random_facedir[2])
+			end
+
+			if biome.spawn_on_side then
+				local onside = biome_lib.find_open_side(pos)
+				if onside then
+					pos = onside.newpos
+					fdir = onside.facedir
+				else
+					will_place = false
+				end
+			elseif biome.spawn_on_bottom then
+				if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == "air" then
+					pos.y = pos.y - 1
+				else
+					will_place = false
+				end
+			elseif biome.spawn_replace_node then
 				pos.y = pos.y-1
 			end
+			
 			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 
-			if not (biome.avoid_nodes and biome.avoid_radius
+			if will_place and not (biome.avoid_nodes and biome.avoid_radius
 					and minetest.find_node_near(p_top, biome.avoid_radius
 					+ math.random(-1.5,2), biome.avoid_nodes)) then
 				if biome.delete_above then
@@ -346,10 +368,6 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 						biome_lib.dbg("An L-tree was spawned at "..minetest.pos_to_string(p_top), 4)
 						spawned = true
 					else
-						local fdir = nil
-						if biome.random_facedir then
-							fdir = math.random(biome.random_facedir[1], biome.random_facedir[2])
-						end
 						local n=nodes_or_function_or_model[math.random(#nodes_or_function_or_model)]
 						minetest.swap_node(p_top, { name = n, param2 = fdir })
 						biome_lib.dbg("Node \""..n.."\" was randomly picked from a list and placed at "..minetest.pos_to_string(p_top), 4)
@@ -357,15 +375,11 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 					end
 				elseif objtype == "string" and
 				  minetest.registered_nodes[nodes_or_function_or_model] then
-					local fdir = nil
-					if biome.random_facedir then
-						fdir = math.random(biome.random_facedir[1], biome.random_facedir[2])
-					end
 					minetest.swap_node(p_top, { name = nodes_or_function_or_model, param2 = fdir })
 					biome_lib.dbg("Node \""..nodes_or_function_or_model.."\" was placed at "..minetest.pos_to_string(p_top), 4)
 					spawned = true
 				elseif objtype == "function" then
-					nodes_or_function_or_model(pos)
+					nodes_or_function_or_model(pos, fdir)
 					biome_lib.dbg("A function was run on surface node at "..minetest.pos_to_string(pos), 4)
 					spawned = true
 				elseif objtype == "string" and pcall(loadstring(("return %s(...)"):
@@ -542,7 +556,7 @@ function biome_lib.register_active_spawner(sd,sp,sr,sc,ss,sa)
 		neighbors = biome.neighbors,
 		label = biome.label,
 		action = function(pos, node, active_object_count, active_object_count_wider)
-			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }	
+			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 			local n_top = minetest.get_node(p_top)
 			local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 
