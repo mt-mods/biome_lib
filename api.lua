@@ -37,10 +37,6 @@ biome_lib.air = {name = "air"}
 -- still specify a wider range if needed.
 biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 }
 
---PerlinNoise(seed, octaves, persistence, scale)
-
-biome_lib.perlin_temperature = PerlinNoise(temperature_seeddiff, temperature_octaves, temperature_persistence, temperature_scale)
-biome_lib.perlin_humidity = PerlinNoise(humidity_seeddiff, humidity_octaves, humidity_persistence, humidity_scale)
 
 -- Local functions
 
@@ -59,17 +55,10 @@ end
 local function get_biome_data(pos, perlin_fertile)
 	local fertility = perlin_fertile:get_2d({x=pos.x, y=pos.z})
 
-	if type(minetest.get_biome_data) == "function" then
-		local data = minetest.get_biome_data(pos)
-		if data then
-			return fertility, data.heat / 100, data.humidity / 100
-		end
-	end
-
-	local temperature = biome_lib.perlin_temperature:get2d({x=pos.x, y=pos.z})
-	local humidity = biome_lib.perlin_humidity:get2d({x=pos.x+150, y=pos.z+50})
-
-	return fertility, temperature, humidity
+	local data = minetest.get_biome_data(pos)
+	-- Original values this method returned were +1 (lowest) to -1 (highest)
+	-- so we need to convert the 0-100 range from get_biome_data() to that.
+	return fertility, 1 - (data.heat / 100 * 2), 1 - (data.humidity / 100 * 2)
 end
 
 function biome_lib.is_node_loaded(node_pos)
@@ -333,7 +322,7 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 			elseif biome.spawn_replace_node then
 				pos.y = pos.y-1
 			end
-			
+
 			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 
 			if will_place and not (biome.avoid_nodes and biome.avoid_radius
