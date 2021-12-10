@@ -7,18 +7,9 @@
 biome_lib = {}
 biome_lib.modpath = minetest.get_modpath("biome_lib")
 
--- Boilerplate to support localized strings if intllib mod is installed.
-local S
-if minetest.global_exists("intllib") then
-	if intllib.make_gettext_pair then
-		S = intllib.make_gettext_pair()
-	else
-		S = intllib.Getter()
-	end
-else
-	S = function(s) return s end
+local function tableize(s)
+	return string.split(string.trim(string.gsub(s, " ", "")))
 end
-biome_lib.intllib = S
 
 local c1 = minetest.settings:get("biome_lib_default_grow_through_nodes")
 biome_lib.default_grow_through_nodes = {["air"] = true}
@@ -85,15 +76,18 @@ minetest.after(0.01, function()
 	biome_lib.dbg("All mapgen registrations completed.", 0)
 
 	if n > 0 then
-		biome_lib.dbg("Total items/actions to handle manually: "..n.." ("..#biome_lib.actionslist_no_aircheck.." without air checks)", 0)
-		biome_lib.dbg("Total surface types to handle manually: "..#biome_lib.surfaceslist_aircheck + #biome_lib.surfaceslist_no_aircheck, 0)
+		biome_lib.dbg("Total items/actions to handle manually: "..n..
+				" ("..#biome_lib.actionslist_no_aircheck.." without air checks)", 0)
+		biome_lib.dbg("Total surface types to handle manually: "
+				..#biome_lib.surfaceslist_aircheck + #biome_lib.surfaceslist_no_aircheck, 0)
 	else
 		biome_lib.dbg("There are no \"handle manually\" items/actions registered,", 0)
 		biome_lib.dbg("so the mapblock queue will not be not used this session.", 0)
 	end
 
 	biome_lib.dbg("Items sent to the engine's decorations handler: "..#biome_lib.registered_decorations, 0)
-	biome_lib.dbg("Elevation range: "..biome_lib.mapgen_elevation_limit.min.." to "..string.format("%+d", biome_lib.mapgen_elevation_limit.max).." meters.", 0)
+	biome_lib.dbg("Elevation range: "..biome_lib.mapgen_elevation_limit.min.." to "..
+			string.format("%+d", biome_lib.mapgen_elevation_limit.max).." meters.", 0)
 
 	if n > 0 then
 		dofile(biome_lib.modpath .. "/block_queue_checks.lua")

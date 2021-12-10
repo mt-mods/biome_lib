@@ -108,7 +108,8 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 				end
 			end
 		else
-			biome_lib.dbg("Did not enqueue mapblocks at elevation "..miny.."m, they're out of range of any generate_plant() calls.", 4)
+			biome_lib.dbg("Did not enqueue mapblocks at elevation "..miny..
+					"m, they're out of range of any generate_plant() calls.", 4)
 		end
 	end
 	biome_lib.run_block_recheck_list = true
