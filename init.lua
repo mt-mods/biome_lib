@@ -7,19 +7,6 @@
 biome_lib = {}
 biome_lib.modpath = minetest.get_modpath("biome_lib")
 
--- Boilerplate to support localized strings if intllib mod is installed.
-local S
-if minetest.global_exists("intllib") then
-	if intllib.make_gettext_pair then
-		S = intllib.make_gettext_pair()
-	else
-		S = intllib.Getter()
-	end
-else
-	S = function(s) return s end
-end
-biome_lib.intllib = S
-
 local c1 = minetest.settings:get("biome_lib_default_grow_through_nodes")
 biome_lib.default_grow_through_nodes = {["air"] = true}
 if c1 then
