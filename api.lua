@@ -14,16 +14,6 @@ biome_lib.fertile_perlin_octaves = 3
 biome_lib.fertile_perlin_persistence = 0.6
 biome_lib.fertile_perlin_scale = 100
 
-local temp_seeddiff = 112
-local temp_octaves = 3
-local temp_persistence = 0.5
-local temp_scale = 150
-
-local humidity_seeddiff = 9130
-local humidity_octaves = 3
-local humidity_persistence = 0.5
-local humidity_scale = 250
-
 local time_speed = tonumber(minetest.settings:get("time_speed"))
 biome_lib.time_scale = 1
 
