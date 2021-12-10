@@ -14,10 +14,10 @@ biome_lib.fertile_perlin_octaves = 3
 biome_lib.fertile_perlin_persistence = 0.6
 biome_lib.fertile_perlin_scale = 100
 
-local temperature_seeddiff = 112
-local temperature_octaves = 3
-local temperature_persistence = 0.5
-local temperature_scale = 150
+local temp_seeddiff = 112
+local temp_octaves = 3
+local temp_persistence = 0.5
+local temp_scale = 150
 
 local humidity_seeddiff = 9130
 local humidity_octaves = 3
@@ -39,14 +39,10 @@ biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 }
 
 --PerlinNoise(seed, octaves, persistence, scale)
 
-biome_lib.perlin_temperature = PerlinNoise(temperature_seeddiff, temperature_octaves, temperature_persistence, temperature_scale)
+biome_lib.perlin_temperature = PerlinNoise(temp_seeddiff, temp_octaves, temp_persistence, temp_scale)
 biome_lib.perlin_humidity = PerlinNoise(humidity_seeddiff, humidity_octaves, humidity_persistence, humidity_scale)
 
 -- Local functions
-
-local function tableize(s)
-	return string.split(string.trim(string.gsub(s, " ", "")))
-end
 
 function biome_lib.dbg(msg, level)
 	local l = tonumber(level) or 0
@@ -128,13 +124,15 @@ function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 	if type(nodes_or_function_or_model) == "string"
 	  and string.find(nodes_or_function_or_model, ":")
 	  and not minetest.registered_nodes[nodes_or_function_or_model] then
-		biome_lib.dbg("Warning: Ignored registration for undefined spawn node: "..dump(nodes_or_function_or_model), 2)
+		biome_lib.dbg("Warning: Ignored registration for undefined spawn node: "..
+				dump(nodes_or_function_or_model), 2)
 		return
 	end
 
 	if type(nodes_or_function_or_model) == "string"
 	  and not string.find(nodes_or_function_or_model, ":") then
-		biome_lib.dbg("Warning: Registered function call using deprecated string method: "..dump(nodes_or_function_or_model), 2)
+		biome_lib.dbg("Warning: Registered function call using deprecated string method: "..
+				dump(nodes_or_function_or_model), 2)
 	end
 
 	biome_lib.mapgen_elevation_limit.min = math.min(biomedef.min_elevation or 0, biome_lib.mapgen_elevation_limit.min)
@@ -143,13 +141,14 @@ function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 	local decor_def = biome_lib.can_use_decorations(biomedef, nodes_or_function_or_model)
 
 	if decor_def then
-		biome_lib.dbg("Using engine decorations instead of biome_lib functions for node(s): "..dump(nodes_or_function_or_model), 3)
+		biome_lib.dbg("Using engine decorations instead of biome_lib functions for node(s): "..
+				dump(nodes_or_function_or_model), 3)
 		biome_lib.registered_decorations[#biome_lib.registered_decorations + 1] = nodes_or_function_or_model
 		minetest.register_decoration(decor_def)
 		return
 	elseif biomedef.check_air == false then
 		biome_lib.dbg("Register no-air-check mapgen hook: "..dump(nodes_or_function_or_model), 3)
-		biome_lib.actionslist_no_aircheck[#biome_lib.actionslist_no_aircheck + 1] = { biomedef, nodes_or_function_or_model }
+		biome_lib.actionslist_no_aircheck[#biome_lib.actionslist_no_aircheck + 1] = {biomedef, nodes_or_function_or_model}
 		local s = biomedef.surface
 		if type(s) == "string" then
 			if s and (string.find(s, "^group:") or minetest.registered_nodes[s]) then
@@ -161,7 +160,7 @@ function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 			end
 		else
 			for i = 1, #biomedef.surface do
-				local s = biomedef.surface[i]
+				s = biomedef.surface[i]
 				if s and (string.find(s, "^group:") or minetest.registered_nodes[s]) then
 					if not search_table(biome_lib.surfaceslist_no_aircheck, s) then
 						biome_lib.surfaceslist_no_aircheck[#biome_lib.surfaceslist_no_aircheck + 1] = s
@@ -185,7 +184,7 @@ function biome_lib.register_on_generate(biomedef, nodes_or_function_or_model)
 			end
 		else
 			for i = 1, #biomedef.surface do
-				local s = biomedef.surface[i]
+				s = biomedef.surface[i]
 				if s and (string.find(s, "^group:") or minetest.registered_nodes[s]) then
 					if not search_table(biome_lib.surfaceslist_aircheck, s) then
 						biome_lib.surfaceslist_aircheck[#biome_lib.surfaceslist_aircheck + 1] = s
@@ -287,7 +286,8 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 	-- filter stage 1 - find nodes from the supplied surfaces that are within the current biome.
 
 	local in_biome_nodes = {}
-	local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
+	local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves,
+			biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 
 	for i = 1, #snodes do
 		local pos = vector.new(snodes[i])
@@ -333,7 +333,7 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 			elseif biome.spawn_replace_node then
 				pos.y = pos.y-1
 			end
-			
+
 			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 
 			if will_place and not (biome.avoid_nodes and biome.avoid_radius
@@ -370,13 +370,15 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 					else
 						local n=nodes_or_function_or_model[math.random(#nodes_or_function_or_model)]
 						minetest.swap_node(p_top, { name = n, param2 = fdir })
-						biome_lib.dbg("Node \""..n.."\" was randomly picked from a list and placed at "..minetest.pos_to_string(p_top), 4)
+						biome_lib.dbg("Node \""..n.."\" was randomly picked from a list and placed at "..
+								minetest.pos_to_string(p_top), 4)
 						spawned = true
 					end
 				elseif objtype == "string" and
 				  minetest.registered_nodes[nodes_or_function_or_model] then
 					minetest.swap_node(p_top, { name = nodes_or_function_or_model, param2 = fdir })
-					biome_lib.dbg("Node \""..nodes_or_function_or_model.."\" was placed at "..minetest.pos_to_string(p_top), 4)
+					biome_lib.dbg("Node \""..nodes_or_function_or_model.."\" was placed at "..
+							minetest.pos_to_string(p_top), 4)
 					spawned = true
 				elseif objtype == "function" then
 					nodes_or_function_or_model(pos, fdir)
@@ -385,9 +387,11 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 				elseif objtype == "string" and pcall(loadstring(("return %s(...)"):
 					format(nodes_or_function_or_model)),pos) then
 					spawned = true
-					biome_lib.dbg("An obsolete string-specified function was run on surface node at "..minetest.pos_to_string(p_top), 4)
+					biome_lib.dbg("An obsolete string-specified function was run on surface node at "..
+							minetest.pos_to_string(p_top), 4)
 				else
-					biome_lib.dbg("Warning: Ignored invalid definition for object "..dump(nodes_or_function_or_model).." that was pointed at {"..dump(pos).."}", 2)
+					biome_lib.dbg("Warning: Ignored invalid definition for object "..
+							dump(nodes_or_function_or_model).." that was pointed at {"..dump(pos).."}", 2)
 				end
 			else
 				tries = tries + 1
@@ -407,7 +411,7 @@ local function confirm_block_surroundings(p)
 	for x = -32,32,64 do -- step of 64 causes it to only check the 8 corner blocks
 		for y = -32,32,64 do
 			for z = -32,32,64 do
-				local n=minetest.get_node_or_nil({x=p.x + x, y=p.y + y, z=p.z + z})
+				n = minetest.get_node_or_nil({x=p.x + x, y=p.y + y, z=p.z + z})
 				if not n or n.name == "ignore" then return false end
 			end
 		end
@@ -441,7 +445,6 @@ function biome_lib.generate_block(shutting_down)
 	local minp =		blocklog[1][1]
 	local maxp =		blocklog[1][2]
 	local airflag = 	blocklog[1][3]
-	local pos_hash = 	minetest.hash_node_position(minp)
 
 	if not biome_lib.pos_hash then -- we need to read the maplock and get the surfaces list
 		local now = minetest.get_us_time()
@@ -449,7 +452,8 @@ function biome_lib.generate_block(shutting_down)
 		minetest.load_area(minp)
 		if not confirm_block_surroundings(minp)
 		  and not shutting_down
-		  and (blocklog[1][4] + biome_lib.block_timeout) > now then -- if any neighbors appear not to be loaded and the block hasn't expired yet, defer it
+			-- if any neighbors appear not to be loaded and the block hasn't expired yet, defer it
+		  and (blocklog[1][4] + biome_lib.block_timeout) > now then
 
 			if biome_lib.run_block_recheck_list then
 				biome_lib.block_log[#biome_lib.block_log + 1] = table.copy(biome_lib.block_recheck_list[1])
@@ -558,7 +562,8 @@ function biome_lib.register_active_spawner(sd,sp,sr,sc,ss,sa)
 		action = function(pos, node, active_object_count, active_object_count_wider)
 			local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 			local n_top = minetest.get_node(p_top)
-			local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
+			local perlin_fertile_area = minetest.get_perlin(biome.seed_diff, biome_lib.fertile_perlin_octaves,
+					biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 
 			local fertility, temperature, humidity = get_biome_data(pos, perlin_fertile_area)
 
@@ -668,12 +673,14 @@ function biome_lib.replace_plant(pos, replacement, grow_function, walldir, seedd
 		biome_lib.grow_ltree(pos, grow_function)
 		return
 	elseif growtype == "function" then
-		local perlin_fertile_area = minetest.get_perlin(seeddiff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
+		local perlin_fertile_area = minetest.get_perlin(seeddiff, biome_lib.fertile_perlin_octaves,
+				biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 		local fertility, temperature, _ = get_biome_data(pos, perlin_fertile_area)
 		grow_function(pos, fertility, temperature, walldir)
 		return
 	elseif growtype == "string" then
-		local perlin_fertile_area = minetest.get_perlin(seeddiff, biome_lib.fertile_perlin_octaves, biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
+		local perlin_fertile_area = minetest.get_perlin(seeddiff, biome_lib.fertile_perlin_octaves,
+				biome_lib.fertile_perlin_persistence, biome_lib.fertile_perlin_scale)
 		local fertility, temperature, _ = get_biome_data(pos, perlin_fertile_area)
 		assert(loadstring(grow_function.."(...)"))(pos, fertility, temperature, walldir)
 		return

@@ -7,6 +7,10 @@
 biome_lib = {}
 biome_lib.modpath = minetest.get_modpath("biome_lib")
 
+local function tableize(s)
+	return string.split(string.trim(string.gsub(s, " ", "")))
+end
+
 local c1 = minetest.settings:get("biome_lib_default_grow_through_nodes")
 biome_lib.default_grow_through_nodes = {["air"] = true}
 if c1 then
@@ -72,15 +76,18 @@ minetest.after(0.01, function()
 	biome_lib.dbg("All mapgen registrations completed.", 0)
 
 	if n > 0 then
-		biome_lib.dbg("Total items/actions to handle manually: "..n.." ("..#biome_lib.actionslist_no_aircheck.." without air checks)", 0)
-		biome_lib.dbg("Total surface types to handle manually: "..#biome_lib.surfaceslist_aircheck + #biome_lib.surfaceslist_no_aircheck, 0)
+		biome_lib.dbg("Total items/actions to handle manually: "..n..
+				" ("..#biome_lib.actionslist_no_aircheck.." without air checks)", 0)
+		biome_lib.dbg("Total surface types to handle manually: "
+				..#biome_lib.surfaceslist_aircheck + #biome_lib.surfaceslist_no_aircheck, 0)
 	else
 		biome_lib.dbg("There are no \"handle manually\" items/actions registered,", 0)
 		biome_lib.dbg("so the mapblock queue will not be not used this session.", 0)
 	end
 
 	biome_lib.dbg("Items sent to the engine's decorations handler: "..#biome_lib.registered_decorations, 0)
-	biome_lib.dbg("Elevation range: "..biome_lib.mapgen_elevation_limit.min.." to "..string.format("%+d", biome_lib.mapgen_elevation_limit.max).." meters.", 0)
+	biome_lib.dbg("Elevation range: "..biome_lib.mapgen_elevation_limit.min.." to "..
+			string.format("%+d", biome_lib.mapgen_elevation_limit.max).." meters.", 0)
 
 	if n > 0 then
 		dofile(biome_lib.modpath .. "/block_queue_checks.lua")
