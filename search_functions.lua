@@ -6,7 +6,7 @@ function biome_lib.find_adjacent_wall(pos, verticals, randomflag)
 	local verts = dump(verticals)
 	if randomflag then
 		local walltab = {}
-		
+
 		if string.find(verts, minetest.get_node({ x=pos.x-1, y=pos.y, z=pos.z   }).name) then walltab[#walltab + 1] = 3 end
 		if string.find(verts, minetest.get_node({ x=pos.x+1, y=pos.y, z=pos.z   }).name) then walltab[#walltab + 1] = 2 end
 		if string.find(verts, minetest.get_node({ x=pos.x  , y=pos.y, z=pos.z-1 }).name) then walltab[#walltab + 1] = 5 end

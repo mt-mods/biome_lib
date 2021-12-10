@@ -81,7 +81,7 @@ function biome_lib.can_use_decorations(b, nodes_or_function_or_treedef)
 		["y_min"] = biome.min_elevation,
 		["y_max"] = biome.max_elevation,
 		["spawn_by"] = biome.near_nodes,
-		["num_spawn_by"] = biome.near_nodes and biome.near_nodes_count, 
+		["num_spawn_by"] = biome.near_nodes and biome.near_nodes_count,
 	}
 
 	local r = (100-biome.rarity)/100

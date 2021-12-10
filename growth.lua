@@ -48,7 +48,6 @@ function biome_lib.update_plant(opts)
 			local p_bot = {x=pos.x, y=pos.y-1, z=pos.z}
 			local n_top = minetest.get_node(p_top)
 			local n_bot = minetest.get_node(p_bot)
-			local root_node = minetest.get_node({x=pos.x, y=pos.y-options.height_limit, z=pos.z})
 			local walldir = nil
 			if options.need_wall and options.verticals_list then
 				walldir = biome_lib.find_adjacent_wall(p_top, options.verticals_list, options.choose_random_wall)

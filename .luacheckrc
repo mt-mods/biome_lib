@@ -1,6 +1,4 @@
 unused_args = false
-max_line_length= 240
-redefined = false
 
 globals = {
 	"biome_lib"
@@ -8,16 +6,13 @@ globals = {
 
 read_globals = {
 	-- Stdlib
-	string = {fields = {"split"}},
-	table = {fields = {"copy", "getn"}},
+	string = {fields = {"split", "trim"}},
+	table = {fields = {"copy"}},
 
 	-- Minetest
-	"vector", "ItemStack",
-	"dump", "minetest",
-	"VoxelManip", "VoxelArea",
-	"PerlinNoise",
+	"minetest", "vector",
+	"dump", "PerlinNoise",
 
 	-- mods
-	"default", "intllib"
-
+	"default",
 }
