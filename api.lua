@@ -14,16 +14,6 @@ biome_lib.fertile_perlin_octaves = 3
 biome_lib.fertile_perlin_persistence = 0.6
 biome_lib.fertile_perlin_scale = 100
 
-local temp_seeddiff = 112
-local temp_octaves = 3
-local temp_persistence = 0.5
-local temp_scale = 150
-
-local humidity_seeddiff = 9130
-local humidity_octaves = 3
-local humidity_persistence = 0.5
-local humidity_scale = 250
-
 local time_speed = tonumber(minetest.settings:get("time_speed"))
 biome_lib.time_scale = 1
 
@@ -37,10 +27,6 @@ biome_lib.air = {name = "air"}
 -- still specify a wider range if needed.
 biome_lib.mapgen_elevation_limit = { ["min"] = -16, ["max"] = 48 }
 
---PerlinNoise(seed, octaves, persistence, scale)
-
-biome_lib.perlin_temperature = PerlinNoise(temp_seeddiff, temp_octaves, temp_persistence, temp_scale)
-biome_lib.perlin_humidity = PerlinNoise(humidity_seeddiff, humidity_octaves, humidity_persistence, humidity_scale)
 
 -- Local functions
 
@@ -55,17 +41,10 @@ end
 local function get_biome_data(pos, perlin_fertile)
 	local fertility = perlin_fertile:get_2d({x=pos.x, y=pos.z})
 
-	if type(minetest.get_biome_data) == "function" then
-		local data = minetest.get_biome_data(pos)
-		if data then
-			return fertility, data.heat / 100, data.humidity / 100
-		end
-	end
-
-	local temperature = biome_lib.perlin_temperature:get2d({x=pos.x, y=pos.z})
-	local humidity = biome_lib.perlin_humidity:get2d({x=pos.x+150, y=pos.z+50})
-
-	return fertility, temperature, humidity
+	local data = minetest.get_biome_data(pos)
+	-- Original values this method returned were +1 (lowest) to -1 (highest)
+	-- so we need to convert the 0-100 range from get_biome_data() to that.
+	return fertility, 1 - (data.heat / 100 * 2), 1 - (data.humidity / 100 * 2)
 end
 
 function biome_lib.is_node_loaded(node_pos)
