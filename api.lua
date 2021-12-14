@@ -74,6 +74,7 @@ function biome_lib.set_defaults(biome)
 	biome.near_nodes_count = biome.near_nodes_count or 1
 	biome.rarity = biome.rarity or 50
 	biome.max_count = biome.max_count or 125
+	biome.density = biome.density or -1
 	if biome.check_air ~= false then biome.check_air = true end
 
 -- specific to abm spawner
@@ -182,7 +183,7 @@ end
 local function populate_single_surface(biome, pos, perlin_fertile_area, checkair)
 	local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 
-	if math.random(1, 100) <= biome.rarity then
+	if biome.density > -1 and math.random(1, 100) <= biome.rarity then
 		return
 	end
 
@@ -283,10 +284,33 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 		return 0
 	end
 
-	for i = 1, math.min(math.ceil(biome.max_count/25), num_in_biome_nodes) do
+	-- Default for-loop parameters when using `max_count` and `rarity` instead
+	-- of `density`
+	local loop_max = math.min(math.ceil(biome.max_count/25), num_in_biome_nodes)
+	local max_tries = 2
+
+	-- If using `density` instead of `max_count` and `rarity`, use the below
+	-- code to calculate the for-loop repetitions.
+	if biome.density > -1 then
+		local loop_max_raw = biome.density / 100 * num_in_biome_nodes
+		local loop_max_floor = math.floor(loop_max_raw)
+		local loop_max_ceil = math.ceil(loop_max_raw)
+		local ceil_chance = loop_max_raw - loop_max_floor
+		if math.random() <= ceil_chance then
+			loop_max = loop_max_ceil
+		else
+			loop_max = loop_max_floor
+		end
+		loop_max = math.min(loop_max, num_in_biome_nodes)
+		max_tries = 1
+	end
+
+	for i = 1, loop_max do
 		local tries = 0
 		local spawned = false
-		while tries < 2 and not spawned do
+
+		while tries < max_tries and not spawned do
+			-- Remove position from nodes list to avoid randomly picking it twice
 			local pos = in_biome_nodes[math.random(1, num_in_biome_nodes)]
 
 			local will_place = true
