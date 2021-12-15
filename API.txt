@@ -250,7 +250,11 @@ biome = {
 						-- skipped.  Avoid using excessively large radii.
 	rarity = num,		-- How rare should this object be in its biome? Larger
 						-- values make objects more rare, via:
-						-- math.random(1,100) > this
+						-- math.random() * 100 > this
+	rarity_fertility	-- The amount that the rarity is reduced by fertility.
+		= num,			-- This makes the rarity field the upper bound for
+						-- rarity, and (rarity - rarity_fertility) the lower
+						-- bound. Defaults to 0.
 	max_count = num,	-- The absolute maximum number of your object that
 						-- should be allowed to spawn in a 5x5x5 mapblock area
 						-- (80x80x80 nodes).  Defaults to 5, but be sure you

@@ -73,6 +73,7 @@ function biome_lib.set_defaults(biome)
 	biome.near_nodes_size = biome.near_nodes_size or 0
 	biome.near_nodes_count = biome.near_nodes_count or 1
 	biome.rarity = biome.rarity or 50
+	biome.rarity_fertility = biome.rarity_fertility or 0
 	biome.max_count = biome.max_count or 125
 	biome.tries = biome.tries or 2
 	if biome.check_air ~= false then biome.check_air = true end
@@ -183,14 +184,18 @@ end
 local function populate_single_surface(biome, pos, perlin_fertile_area, checkair)
 	local p_top = { x = pos.x, y = pos.y + 1, z = pos.z }
 
-	if math.random(1, 100) <= biome.rarity then
+	if biome.rarity - biome.rarity_fertility == 100 then
 		return
 	end
 
 	local fertility, temperature, humidity = get_biome_data(pos, perlin_fertile_area)
 
+	if math.random() * 100 <= (biome.rarity - ((fertility + 1) / 2 * biome.rarity_fertility)) then
+		return
+	end
+
 	local pos_biome_ok = pos.y >= biome.min_elevation and pos.y <= biome.max_elevation
-		and fertility > biome.plantlife_limit
+		and fertility >= biome.plantlife_limit
 		and temperature <= biome.temp_min and temperature >= biome.temp_max
 		and humidity <= biome.humidity_min and humidity >= biome.humidity_max
 
