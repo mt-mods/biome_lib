@@ -74,6 +74,7 @@ function biome_lib.set_defaults(biome)
 	biome.near_nodes_count = biome.near_nodes_count or 1
 	biome.rarity = biome.rarity or 50
 	biome.max_count = biome.max_count or 125
+	biome.tries = biome.tries or 2
 	if biome.check_air ~= false then biome.check_air = true end
 
 -- specific to abm spawner
@@ -286,7 +287,7 @@ function biome_lib.populate_surfaces(b, nodes_or_function_or_model, snodes, chec
 	for i = 1, math.min(math.ceil(biome.max_count/25), num_in_biome_nodes) do
 		local tries = 0
 		local spawned = false
-		while tries < 2 and not spawned do
+		while tries < biome.tries and not spawned do
 			local pos = in_biome_nodes[math.random(1, num_in_biome_nodes)]
 
 			local will_place = true
