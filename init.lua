@@ -82,7 +82,7 @@ minetest.after(0.01, function()
 				..#biome_lib.surfaceslist_aircheck + #biome_lib.surfaceslist_no_aircheck, 0)
 	else
 		biome_lib.dbg("There are no \"handle manually\" items/actions registered,", 0)
-		biome_lib.dbg("so the mapblock queue will not be not used this session.", 0)
+		biome_lib.dbg("so the mapblock queue will not be used this session.", 0)
 	end
 
 	biome_lib.dbg("Items sent to the engine's decorations handler: "..#biome_lib.registered_decorations, 0)
