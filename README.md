@@ -14,8 +14,8 @@ It is primarily intended for mapgen v6, but it should work fine when used with m
 
 **Dependencies:** nothing, but if you don't use `minetest_game`, you'll need to supply some settings (see API.txt).
 
-**Recommends**: [Plantlife Modpack](https://github.com/minetest-mods/plantlife_modpack), 
-[More Trees](https://github.com/minetest-mods/moretrees)
+**Recommends**: [Plantlife Modpack](https://github.com/mt-mods/plantlife_modpack), 
+[More Trees](https://github.com/mt-mods/moretrees)
 
 **API**: This mod supplies a small number of very powerful functions. They are, briefly:
 
